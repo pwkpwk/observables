@@ -64,4 +64,16 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	protected final void notifyAdded(int startIndex, int count) {
 		this.observers.added(startIndex, count);
 	}
+	
+	protected final void notifyRemoved(int startIndex, Collection<T> items) {
+		this.observers.removed(startIndex, items);
+	}
+
+	protected final void notifyMoved(int oldStartIndex, int newStartIndex, int count) {
+		this.observers.moved(oldStartIndex, newStartIndex, count);
+	}
+	
+	protected final void notifyReset(Collection<T> oldItems) {
+		this.observers.reset(oldItems);
+	}
 }
