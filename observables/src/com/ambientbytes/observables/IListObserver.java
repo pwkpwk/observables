@@ -2,6 +2,12 @@ package com.ambientbytes.observables;
 
 import java.util.Collection;
 
+/**
+ * Observer of an observable list.
+ * @author Pavel Karpenko
+ *
+ * @param <T> type of items of the observed list.
+ */
 public interface IListObserver<T> {
 	/**
 	 * Called after new items have been added to the observed list.

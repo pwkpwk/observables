@@ -14,6 +14,19 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 	private final IListMutator<T> mutator;
 	
 	private final class Mutator implements IListMutator<T> {
+		
+		@Override
+		public final void add(T value) {
+			final Lock l = lock.writeLock();
+			
+			l.lock();
+			
+			try {
+				insertUnsafe(data.size(), value);
+			} finally {
+				l.unlock();
+			}
+		}
 
 		@Override
 		public final void insert(int index, T value) {
@@ -29,16 +42,19 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 
 		@Override
-		public final void remove(int index, int count) {
+		public final int remove(int index, int count) {
 			final Lock l = lock.writeLock();
+			int length;
 			
 			l.lock();
 			
 			try {
-				removeUnsafe(index, count);
+				length = removeUnsafe(index, count);
 			} finally {
 				l.unlock();
 			}
+			
+			return length;
 		}
 
 		@Override
@@ -67,7 +83,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			}
 		}
 
-		private void removeUnsafe(int index, int count) {
+		private int removeUnsafe(int index, int count) {
 			if (index < 0 || index >= data.size()) {
 				throw new IndexOutOfBoundsException();
 			}
@@ -75,7 +91,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			int length = count;
 			
 			if (index + length > data.size()) {
-				length -= data.size() - index;
+				length = data.size() - index;
 			}
 			
 			if (length > 0) {
@@ -87,6 +103,8 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 				
 				observers.removed(index, removedValues);
 			}
+			
+			return length;
 		}
 
 		private void insertUnsafe(int index, T value) {
@@ -111,7 +129,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 				int length = count;
 				
 				if (startIndex + length > data.size()) {
-					length -= data.size() - startIndex;
+					length = data.size() - startIndex;
 				}
 				
 				if (length > 0) {

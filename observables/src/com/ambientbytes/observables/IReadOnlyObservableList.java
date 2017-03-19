@@ -1,7 +1,24 @@
 package com.ambientbytes.observables;
 
+/**
+ * Read-only observable list.
+ * @author Pavel Karpenko
+ *
+ * @param <T> type of items in the list.
+ */
 public interface IReadOnlyObservableList<T> {
+	/**
+	 * Get an item at the specified index.
+	 * @param index zero-based index of the item to retrieve. If the index is outside of the list,
+	 * the method throws an exception.
+	 * @return item at the specified index.
+	 */
 	T getAt(int index);
+	
+	/**
+	 * Get the current size of the list.
+	 * @return size of the list.
+	 */
 	int getSize();
 
 	/**
