@@ -82,6 +82,19 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 				l.unlock();
 			}
 		}
+		
+		@Override
+		public final void reset(Collection<T> newItems) {
+			final Lock l = lock.writeLock();
+			
+			l.lock();
+			
+			try {
+				resetUnsafe(newItems);
+			} finally {
+				l.unlock();
+			}
+		}
 
 		private int removeUnsafe(int index, int count) {
 			if (index < 0 || index >= data.size()) {
@@ -179,6 +192,14 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			}
 		}
 		
+		private void resetUnsafe(Collection<T> newItems) {
+			List<T> oldItems = new ArrayList<>(data);
+			
+			data.clear();
+			data.addAll(newItems);
+			
+			observers.reset(oldItems);
+		}
 	}
 	
 	public MutableObservableList(final ReadWriteLock lock) {

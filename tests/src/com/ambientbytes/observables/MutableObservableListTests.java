@@ -2,6 +2,7 @@ package com.ambientbytes.observables;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -384,6 +385,52 @@ public class MutableObservableListTests {
 		mol.getMutator().add(Integer.valueOf(1));
 		
 		verify(observer, never()).added(anyInt(), anyInt());
+	}
+	
+	@Test
+	public void resetReset() {
+		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+		final int[] updated = { 0, 1, 7, 8 };
+		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>(updated.length);
+
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().insert(i, Integer.valueOf(original[i]));
+		}
+		for (int i = 0; i < updated.length; ++i) {
+			newContents.add(Integer.valueOf(updated[i]));
+		}
+		
+		mol.getMutator().reset(newContents);
+
+		assertEquals(updated.length, mol.getSize());
+		for (int i = 0; i < updated.length; ++i) {
+			assertEquals(updated[i], mol.getAt(i).intValue());
+		}
+	}
+	
+	@Test
+	public void resetNotifies() {
+		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+		final int[] updated = { 0, 1, 7, 8 };
+		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>(updated.length);
+
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().insert(i, Integer.valueOf(original[i]));
+		}
+		for (int i = 0; i < updated.length; ++i) {
+			newContents.add(Integer.valueOf(updated[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().reset(newContents);
+
+		verify(observer, times(1)).reset(captor.capture());
+		int i = 0;
+		for (Integer v : captor.getValue()) {
+			assertEquals(original[i++], v.intValue());
+		}
 	}
 
 }

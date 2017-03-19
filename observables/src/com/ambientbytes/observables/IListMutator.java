@@ -1,5 +1,7 @@
 package com.ambientbytes.observables;
 
+import java.util.Collection;
+
 /**
  * Interface of a mutator of an observable list.
  * Mutations are separate from the data access interface.
@@ -43,4 +45,10 @@ public interface IListMutator<T> {
 	 * @param count number of items to move.
 	 */
 	void move(int startIndex, int newIndex, int count);
+
+	/**
+	 * Reset contents of the collection with new items.
+	 * @param newItems new contents of the list.
+	 */
+	void reset(Collection<T> newItems);
 }
