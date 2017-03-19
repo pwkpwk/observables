@@ -4,22 +4,43 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 
 final class ListObserversCollection<T> implements IListObserver<T> {
+	
+	private final ReadWriteLock lock;
 	private final Set<IListObserver<T>> observers;
 	
-	public ListObserversCollection() {
-		observers = new HashSet<IListObserver<T>>();
+	public ListObserversCollection(final ReadWriteLock lock) {
+		this.lock = lock;
+		this.observers = new HashSet<IListObserver<T>>();
 	}
 	
 	public void add(IListObserver<T> observer) {
-		if (!observers.add(observer)) {
-			throw new IllegalStateException("Duplicate list observer");
+		final Lock l = lock.writeLock();
+		
+		l.lock();
+		
+		try {
+			if (!observers.add(observer)) {
+				throw new IllegalStateException("Duplicate list observer");
+			}
+		} finally {
+			l.unlock();
 		}
 	}
 	
 	public void remove(IListObserver<T> observer) {
-		observers.remove(observer);
+		final Lock l = lock.writeLock();
+		
+		l.lock();
+		
+		try {
+			observers.remove(observer);
+		} finally {
+			l.unlock();
+		}
 	}
 
 	@Override
@@ -51,6 +72,17 @@ final class ListObserversCollection<T> implements IListObserver<T> {
 	}
 	
 	private Iterable<IListObserver<T>> makeInvocationList() {
-		return new ArrayList<IListObserver<T>>(observers);
+		Iterable<IListObserver<T>> iterable;
+		final Lock l = lock.readLock();
+		
+		l.lock();
+		
+		try {
+			iterable = new ArrayList<IListObserver<T>>(observers);
+		} finally {
+			l.unlock();
+		}
+		
+		return iterable;
 	}
 }

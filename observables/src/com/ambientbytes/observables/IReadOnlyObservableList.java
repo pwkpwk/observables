@@ -1,6 +1,9 @@
 package com.ambientbytes.observables;
 
-public interface IObservableList<T> {
+public interface IReadOnlyObservableList<T> {
+	T getAt(int index);
+	int getSize();
+
 	/**
 	 * Add a new unique non-null observer. An observer may be added to the observable list only once.
 	 * An attempt to add an observer again must throw an exception.
