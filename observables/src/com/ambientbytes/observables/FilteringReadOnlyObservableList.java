@@ -2,32 +2,58 @@ package com.ambientbytes.observables;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
 		implements IItemFilterContainer<T> {
 	
-	private final List<T> data;
-	private final Set<T> filteredOutItems;
-	private final IObjectMutationObserver mutationObserver;
+	private final List<ItemContainer> data;
+	private final Map<T, ItemContainer> filteredOutItems;
 	private IItemFilter<T> filter;
+	
+	private final class ItemContainer implements IObjectMutationObserver {
+		
+		private final T item;
+		private final IMutableObject mutable;
+		
+		public ItemContainer(T item) {
+			this.item = item;
+			
+			if (item instanceof IMutableObject) {
+				this.mutable = (IMutableObject) item;
+				this.mutable.addObserver(this);
+			} else {
+				this.mutable = null;
+			}
+		}
+		
+		public T item() {
+			return item;
+		}
+		
+		public void unadvise() {
+			if (mutable != null) {
+				mutable.removeObserver(this);
+			}
+		}
 
-	protected FilteringReadOnlyObservableList(
+		@Override
+		public final void mutated() {
+			onItemMutated(item);
+		}
+	}
+
+	public FilteringReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
 			IItemFilter<T> filter) {
 		super(source);
-		this.data = new ArrayList<T>(source.getSize());
-		this.filteredOutItems = new HashSet<T>();
-		this.mutationObserver = new IObjectMutationObserver() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public void mutated(IMutableObject source) {
-				onItemMutated((T)source);
-			}
-		};
+		this.data = new ArrayList<ItemContainer>(source.getSize());
+		this.filteredOutItems = new HashMap<T, ItemContainer>();
 		this.filter = filter;
 		
 		int size = source.getSize();
@@ -39,7 +65,7 @@ final class FilteringReadOnlyObservableList<T>
 
 	@Override
 	public T getAt(int index) {
-		return data.get(index);
+		return data.get(index).item();
 	}
 
 	@Override
@@ -50,7 +76,7 @@ final class FilteringReadOnlyObservableList<T>
 	@Override
 	protected void onUnlinked() {
 		removeMutableObserverFromItems(data);
-		removeMutableObserverFromItems(filteredOutItems);
+		removeMutableObserverFromItems(filteredOutItems.values());
 		filteredOutItems.clear();
 	}
 	
@@ -72,15 +98,17 @@ final class FilteringReadOnlyObservableList<T>
 
 	@Override
 	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
-		
-		removeMutableObserverFromItems(items);
-		
 		for (T item : items) {
-			if (!filteredOutItems.remove(item)) {
-				int index = data.indexOf(item);
+			ItemContainer container = filteredOutItems.remove(item);
+
+			if (container != null) {
+				container.unadvise();
+			} else {
+				int index = indexOfContainer(item);
 				
 				if (index >= 0) {
 					final List<T> removedItem = new ArrayList<T>(1);
+					data.get(index).unadvise();
 					removedItem.add(item);
 					data.remove(index);
 					notifyRemoved(index, removedItem);
@@ -96,9 +124,12 @@ final class FilteringReadOnlyObservableList<T>
 
 	@Override
 	protected void onReset(IReadOnlyObservableList<T> source, Collection<T> items) {
-		Collection<T> oldItems = new ArrayList<T>(data);
+		Collection<T> oldItems = new ArrayList<T>(data.size());
+		for (ItemContainer c : data) {
+			oldItems.add(c.item());
+		}
 		removeMutableObserverFromItems(data);
-		removeMutableObserverFromItems(filteredOutItems);
+		removeMutableObserverFromItems(filteredOutItems.values());
 		data.clear();
 		filteredOutItems.clear();
 
@@ -121,19 +152,23 @@ final class FilteringReadOnlyObservableList<T>
 		if (this.filter != filter) {
 			this.filter = filter;
 			
-			Collection<T> oldItems = new ArrayList<T>(data);
-			Collection<T> allItems = new ArrayList<T>(data.size() + filteredOutItems.size());
+			Collection<T> oldItems = new ArrayList<T>(data.size());
+			Collection<ItemContainer> allItems = new ArrayList<ItemContainer>(data.size() + filteredOutItems.size());
+			
+			for (ItemContainer c : data) {
+				oldItems.add(c.item());
+			}
 			
 			allItems.addAll(data);
-			allItems.addAll(filteredOutItems);
+			allItems.addAll(filteredOutItems.values());
 			data.clear();
 			filteredOutItems.clear();
 			
-			for (T item : allItems) {
-				if (filter.isIn(item)) {
-					data.add(item);
+			for (ItemContainer c : allItems) {
+				if (filter.isIn(c.item())) {
+					data.add(c);
 				} else {
-					filteredOutItems.add(item);
+					filteredOutItems.put(c.item(), c);
 				}
 			}
 			
@@ -143,47 +178,58 @@ final class FilteringReadOnlyObservableList<T>
 	
 	private void onItemMutated(T item) {
 		if (filter.isIn(item)) {
-			if (filteredOutItems.remove(item)) {
+			ItemContainer container = filteredOutItems.remove(item);
+			
+			if (container != null) {
 				int index = this.data.size();
-				this.data.add(item);
+				this.data.add(container);
 				notifyAdded(index, 1);
 			}
 		} else {
-			int index = this.data.indexOf(item);
+			int index = indexOfContainer(item);
 			
 			if (index >= 0) {
 				Collection<T> removedItems = new ArrayList<T>(1);
 				removedItems.add(item);
+				filteredOutItems.put(item, data.get(index));
 				data.remove(index);
-				filteredOutItems.add(item);
 				notifyRemoved(index, removedItems);
 			}
 		}
 	}
 	
-	private void removeMutableObserverFromItems(Collection<T> items) {
-		for (T item : items) {
-			if (item instanceof IMutableObject) {
-				IMutableObject mutable = (IMutableObject) item;
-				mutable.removeObserver(mutationObserver);
-			}
+	private void removeMutableObserverFromItems(Collection<ItemContainer> containers) {
+		for (ItemContainer container : containers) {
+			container.unadvise();
 		}
 	}
 	
 	private boolean addItem(T item) {
 		final boolean added = filter.isIn(item);
 		
-		if (item instanceof IMutableObject) {
-			IMutableObject mutable = (IMutableObject) item;
-			mutable.addObserver(mutationObserver);
-		}
+		ItemContainer container = new ItemContainer(item);
 		
 		if (added) {
-			this.data.add(item);
+			this.data.add(container);
 		} else {
-			this.filteredOutItems.add(item);
+			this.filteredOutItems.put(item, container);
 		}
 		
 		return added;
+	}
+	
+	private int indexOfContainer(T item) {
+		final int size = data.size();
+		int index = -1;
+
+		for (int i = 0; i < size && index < 0;) {
+			if (data.get(i).item() == item) {
+				index = i;
+			} else {
+				++i;
+			}
+		}
+		
+		return index;
 	}
 }

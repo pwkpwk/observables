@@ -45,7 +45,7 @@ public class FilteringReadOnlyObservableListTests {
 			if (this.value != value) {
 				this.value = value;
 				for (IObjectMutationObserver observer : observers) {
-					observer.mutated(this);
+					observer.mutated();
 				}
 			}
 		}
@@ -155,6 +155,20 @@ public class FilteringReadOnlyObservableListTests {
 	}
 
 	@Test
+	public void removeDisallowedRemoved() {
+		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true).thenReturn(false).thenReturn(true);
+		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1);
+
+		ol.mutator().add(1);
+		ol.mutator().add(2);
+		ol.mutator().add(3);
+		ol.mutator().remove(1, 1);
+
+		assertEquals(2, fol.getSize());
+	}
+
+	@Test
 	public void permitNoneAddItemsNoneAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(false);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
@@ -201,6 +215,23 @@ public class FilteringReadOnlyObservableListTests {
 	}
 	
 	@Test
+	public void mutateRemovedMutationIgnored() {
+		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter());
+		TestItem item;
+		
+		ol.mutator().add(new TestItem(1));
+		ol.mutator().add(new TestItem(2));
+		ol.mutator().add(item = new TestItem(11));
+		ol.mutator().add(new TestItem(12));
+		ol.mutator().remove(2, 1);
+		
+		assertEquals(2, fol.getSize());
+		item.setValue(3);
+		assertEquals(2, fol.getSize());
+	}
+	
+	@Test
 	public void unlinkNoMoreUpdates() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
 		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter());
@@ -215,6 +246,17 @@ public class FilteringReadOnlyObservableListTests {
 		assertEquals(2, fol.getSize());
 		item.setValue(11);
 		assertEquals(2, fol.getSize());
+		
+		List<Object> l = new ArrayList<>();
+		l.add(ol.list().getAt(0));
+		l.add(ol.list().getAt(1));
+		assertContainsAllItems(fol, l);
 	}
 
+	private static <T> void assertContainsAllItems(IReadOnlyObservableList<T> list, List<Object> items) {
+		for (int i = 0; i < list.getSize(); ++i) {
+			assertTrue(items.contains(list.getAt(i)));
+		}
+		assertEquals(items.size(), list.getSize());
+	}
 }
