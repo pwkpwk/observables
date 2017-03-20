@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class FilteringReadOnlyObservableCollectionTests {
+public class FilteringReadOnlyObservableListTests {
 	
 	private static class TestItem implements IMutableObject {
 		
