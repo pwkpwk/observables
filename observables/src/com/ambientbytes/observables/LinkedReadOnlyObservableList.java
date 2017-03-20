@@ -53,9 +53,11 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 			source.removeObserver(observer);
 			source = null;
 			observer = null;
+			onUnlinked();
 		}
 	}
-	
+
+	protected void onUnlinked() {}
 	protected abstract void onAdded(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items);
 	protected abstract void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count);
