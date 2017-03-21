@@ -150,43 +150,24 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 						throw new IndexOutOfBoundsException();
 					}
 					
-					//
-					// Preserve the source range
-					//
-					List<T> source = new ArrayList<>(length);
-					for (int i = 0; i < length; ++i) {
-						source.add(data.get(startIndex + i));
-					}
-
+					final int low, pivot, high;
+					
 					if (startIndex < newIndex) {
-						// Move the items up.
-						final int shiftedLength = newIndex - startIndex;
-						//
-						// Fill the gap left by the removed source range with elements immediately after it.
-						//
-						for (int i = 0; i < shiftedLength; ++i) {
-							data.set(startIndex + i, data.get(startIndex + length + i));
-						}
-						//
-						// Put the preserved source range to its new place.
-						//
-						for (int i = 0; i < length; ++i) {
-							data.set(newIndex + i, source.get(i));
-						}
+						low = startIndex;
+						pivot = startIndex + length;
+						high = newIndex + length;
 					} else {
-						// Move the items down.
-						final int shiftedLength = startIndex - newIndex;
-						
-						for (int i = 0; i < shiftedLength; ++i) {
-							data.set(startIndex + length - 1 - i, data.get(newIndex + shiftedLength - 1 - i));
-						}
-						//
-						// Put the preserved source range to its new place.
-						//
-						for (int i = 0; i < length; ++i) {
-							data.set(newIndex + i, source.get(i));
-						}
+						low = newIndex;
+						pivot = startIndex;
+						high = pivot + length;
 					}
+					// To shift the source range we find a pivoting point and rotate the part of the list
+					// that cover the entire range affected by the move three times - left and right of the pivoting point
+					// and then the entire range.
+					reverseRange(low, pivot);
+					reverseRange(pivot, high);
+					reverseRange(low, high);
+
 					observers.moved(startIndex, newIndex, length);
 				}
 			}
@@ -199,6 +180,21 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			data.addAll(newItems);
 			
 			observers.reset(oldItems);
+		}
+		
+		private final void reverseRange(int low, int high) {
+			if (high - low > 1) {
+				int l = low;
+				int h = high - 1;
+				
+				while (l < h) {
+					T tmp = data.get(l);
+					data.set(l, data.get(h));
+					data.set(h,  tmp);
+					l++;
+					h--;
+				}
+			}
 		}
 	}
 	

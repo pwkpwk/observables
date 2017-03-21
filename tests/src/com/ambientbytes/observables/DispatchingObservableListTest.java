@@ -140,6 +140,26 @@ public class DispatchingObservableListTest {
 	}
 	
 	@Test
+	public void moveUpInSourceOverlapNotifies() {
+		IDispatcher dispatcher = mock(IDispatcher.class);
+		ObservableList<Integer> mol = ObservableCollections.createObservableList();
+		for (int i = 0; i < 10; ++i) {
+			mol.mutator().add(Integer.valueOf(i));
+		}
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		dol.addObserver(observer);
+		
+		mol.mutator().move(1, 3, 5);
+
+		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
+		List<IAction> actions = actionCaptor.getAllValues();
+		actions.get(0).execute();
+		
+		verify(observer, times(1)).moved(eq(1), eq(3), eq(5));
+		assertListsEqual(mol.list(), dol);
+	}
+	
+	@Test
 	public void moveDownInSourceNotifies() {
 		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
@@ -159,11 +179,30 @@ public class DispatchingObservableListTest {
 		assertListsEqual(mol.list(), dol);
 	}
 	
+	@Test
+	public void moveDownInSourceOverlapNotifies() {
+		IDispatcher dispatcher = mock(IDispatcher.class);
+		ObservableList<Integer> mol = ObservableCollections.createObservableList();
+		for (int i = 0; i < 10; ++i) {
+			mol.mutator().add(Integer.valueOf(i));
+		}
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		dol.addObserver(observer);
+		
+		mol.mutator().move(2, 0, 3);
+
+		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
+		List<IAction> actions = actionCaptor.getAllValues();
+		actions.get(0).execute();
+		
+		verify(observer, times(1)).moved(eq(2), eq(0), eq(3));
+		assertListsEqual(mol.list(), dol);
+	}
+	
 	private static <T> void assertListsEqual(IReadOnlyObservableList<T> list1, IReadOnlyObservableList<T> list2) {
 		assertEquals(list1.getSize(), list2.getSize());
 		for (int i = 0; i < list1.getSize(); ++i) {
 			assertSame(list1.getAt(i), list2.getAt(i));
 		}
 	}
-
 }
