@@ -15,7 +15,7 @@ final class OrderingReadOnlyObservableList<T>
 	
 	private final class ItemContainer implements IObjectMutationObserver {
 		private final T item;
-		private final IMutableObject mutable;
+		private IMutableObject mutable;
 		
 		public ItemContainer(T item) {
 			this.item = item;
@@ -32,8 +32,10 @@ final class OrderingReadOnlyObservableList<T>
 		}
 		
 		public void unadvise() {
-			if (mutable != null) {}
-			mutable.removeObserver(this);
+			if (mutable != null) {
+				mutable.removeObserver(this);
+				mutable = null;
+			}
 		}
 
 		@Override
@@ -90,14 +92,14 @@ final class OrderingReadOnlyObservableList<T>
 	@Override
 	protected void onAdded(IReadOnlyObservableList<T> source, int startIndex, int count) {
 		for (int i = 0; i < count; ++i) {
-			// TODO: find insertion index and add a new ItemContainer that wraps the new item.
+			insertAndNotify(source.getAt(startIndex + i));
 		}
 	}
 
 	@Override
 	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
 		for (T item : items) {
-			int index = indexOfItem(data, item);
+			int index = indexOfItem(item);
 			
 			if (index >= 0) {
 				List<T> removed = new ArrayList<>(1);
@@ -139,7 +141,13 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private void onItemMutated(T item) {
-		// TODO: remove the mutated item and re-insert it at the new position
+		int index = indexOfMutatedItem(item);
+		Collection<T> removedItems = new ArrayList<>(1);
+		ItemContainer container = data.get(index);
+		data.remove(index);
+		removedItems.add(item);
+		notifyRemoved(index, removedItems);
+		data.add(indexOfFirstGreaterOrEqualItem(item), container);
 	}
 	
 	private Comparator<ItemContainer> makeComparator(final IItemsOrder<T> order) {
@@ -159,9 +167,29 @@ final class OrderingReadOnlyObservableList<T>
 		};
 	}
 	
-	private int indexOfItem(List<ItemContainer> items, T item) {
-		// TODO: binary search before scanning for the item.
+	private int indexOfItem(T item) {
+		int index = indexOfFirstGreaterOrEqualItem(item);
 		
+		while (index < data.size() && !order.isLess(data.get(index).item(), item)) {
+			if (data.get(index).item() == item) {
+				break;
+			} else {
+				++index;
+			}
+		}
+		
+		if (index >= data.size()) {
+			index = -1;
+		}
+		
+		return index;
+	}
+	
+	private int indexOfMutatedItem(T item) {
+		//
+		// Must do a linear scan of the data list because we may be looking for a mutated item
+		// that went out of order.
+		//
 		int index = -1;
 		
 		for (int i = 0; index < 0 && i < data.size(); ++i) {
@@ -181,7 +209,26 @@ final class OrderingReadOnlyObservableList<T>
 		// according to the set order.
 		// A new item may be inserted at the returned index.
 		//
-		return 0;
+		int left = -1;
+		int right = data.size();
+		
+		while (left + 1 != right) {
+			int middle = left + (right - left) / 2;
+			
+			if (order.isLess(data.get(middle).item(), item)) {
+				left = middle;
+			} else {
+				right = middle;
+			}
+		}
+		
+		return right;
+	}
+	
+	private void insertAndNotify(T item) {
+		int insertionIndex = indexOfFirstGreaterOrEqualItem(item);
+		data.add(insertionIndex, new ItemContainer(item));
+		notifyAdded(insertionIndex, 1);
 	}
 
 }
