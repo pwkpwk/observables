@@ -1,11 +1,14 @@
 package com.ambientbytes.observables;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -334,6 +337,75 @@ public class OrderingReadOnlyObservableListTests {
 		assertEquals(2, ool.getAt(1).value);
 		assertEquals(4, ool.getAt(2).value);
 		assertEquals(9, ool.getAt(3).value);
+	}
+	
+	@Test
+	public void resetSourceItemsReplaced() {
+		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
+		final TestItem[] newItems = new TestItem[] { new TestItem(6), new TestItem(7), new TestItem(8), new TestItem(9) };
+		final Collection<TestItem> newItemsList = new ArrayList<TestItem>(newItems.length);
+		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		for (TestItem item : originalItems) {
+			ol.mutator().add(item);
+		}
+		for (TestItem item : newItems) {
+			newItemsList.add(item);
+		}
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+
+		ol.mutator().reset(newItemsList);
+		
+		assertEquals(newItems.length, ool.getSize());
+		for (int i = 0; i < newItems.length; ++i) {
+			assertSame(newItems[i], ool.getAt(i));
+			assertEquals(1, newItems[i].getObserversNumber());
+		}
+		for (TestItem item : originalItems) {
+			assertEquals(0, item.getObserversNumber());
+		}
+	}
+	
+	@Test
+	public void moveInSourceNoChange() {
+		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
+		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		for (TestItem item : originalItems) {
+			ol.mutator().add(item);
+		}
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		ool.addObserver(testObserver);
+
+		ol.mutator().move(0, 2, 2);
+
+		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
+		verify(testObserver, never()).added(anyInt(), anyInt());
+		verify(testObserver, never()).removed(anyInt(), any());
+		verify(testObserver, never()).reset(any());
+	}
+	
+	@Test
+	public void unlinkAndChangeNoChanges() {
+		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
+		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		for (TestItem item : originalItems) {
+			ol.mutator().add(item);
+		}
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		ool.addObserver(testObserver);
+		ool.unlink();
+
+		ol.mutator().move(0, 2, 2);
+		ol.mutator().add(new TestItem(100));
+		ol.mutator().remove(0, 3);
+
+		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
+		verify(testObserver, never()).added(anyInt(), anyInt());
+		verify(testObserver, never()).removed(anyInt(), any());
+		verify(testObserver, never()).reset(any());
+		for (int i = 0; i < originalItems.length; ++i) {
+			assertSame(originalItems[i], ool.getAt(i));
+			assertEquals(0, ool.getAt(i).getObserversNumber());
+		}
 	}
 
 }

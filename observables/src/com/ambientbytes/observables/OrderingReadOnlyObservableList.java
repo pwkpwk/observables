@@ -6,6 +6,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Implementation of IReadOnlyObservableList that orders items of another observable list
+ * according to an ordering object.
+ * @author Pavel Karpenko
+ *
+ * @param <T> type of the list item.
+ */
 final class OrderingReadOnlyObservableList<T>
 				extends LinkedReadOnlyObservableList<T>
 				implements IItemsOrderContainer<T> {
@@ -44,6 +51,12 @@ final class OrderingReadOnlyObservableList<T>
 		}
 	}
 
+	/**
+	 * Construct a new OrderingReadOnlyObservableList object, copy items from the source list,
+	 * and subscribe for updates of the source.
+	 * @param source source list.
+	 * @param order rule object for ordering item in the ordering list.
+	 */
 	public OrderingReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
 			IItemsOrder<T> order) {
