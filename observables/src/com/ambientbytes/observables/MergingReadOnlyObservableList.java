@@ -16,12 +16,12 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 	private final class ListInfo implements IListObserver<T> {
 		private final IReadOnlyObservableList<T> list;
 		private int index;		// index of the list in the "lists" collection
-		private int startIndex;	// index of the first element of the list in the "data" collection
+		private int offset;	// index of the first element of the list in the "data" collection
 		
-		public ListInfo(IReadOnlyObservableList<T> list, int index, int startIndex) {
+		public ListInfo(IReadOnlyObservableList<T> list, int index, int offset) {
 			this.list = list;
 			this.list.addObserver(this);
-			this.startIndex = startIndex;
+			this.offset = offset;
 		}
 		
 		public void unlink() {
@@ -37,21 +37,21 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			Collection<T> removed = new ArrayList<>(length);
 
 			for (int i = 0; i < length; ++i) {
-				removed.add(data.get(startIndex + i));
+				removed.add(data.get(offset + i));
 			}
-			data.remove(startIndex, length);
-			observers.removed(startIndex, removed);
+			data.remove(offset, length);
+			observers.removed(offset, removed);
 			
 			return length;
 		}
 		
 		public void shiftBack(int indexShift, int itemCount) {
-			startIndex -= itemCount;
+			offset -= itemCount;
 			index -= indexShift;
 		}
 		
 		public void shiftForward(int indexShift, int itemCount) {
-			startIndex += itemCount;
+			offset += itemCount;
 			index += indexShift;
 		}
 
@@ -62,7 +62,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			l.lock();
 			
 			try {
-				
+				onAddedUnsafe(startIndex, count);
 			} finally {
 				l.unlock();
 			}
@@ -75,7 +75,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			l.lock();
 			
 			try {
-				
+				onRemovedUnsafe(startIndex, items);
 			} finally {
 				l.unlock();
 			}
@@ -105,6 +105,28 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			} finally {
 				l.unlock();
 			}
+		}
+		
+		private void onAddedUnsafe(int startIndex, int count) {
+			if (count > 1) {
+				List<T> newItems = new ArrayList<>(count);
+				for (int i = 0; i < count; ++i) {
+					newItems.add(list.getAt(i));
+				}
+				data.addAll(offset + startIndex, newItems);
+			} else {
+				data.add(offset + startIndex, list.getAt(startIndex));
+			}
+			
+			for (int listIndex = index + 1; listIndex < lists.size(); ++listIndex) {
+				lists.get(listIndex).shiftForward(0, count);
+			}
+			
+			observers.added(offset + startIndex, count);
+		}
+		
+		private void onRemovedUnsafe(int startIndex, Collection<T> items) {
+			//
 		}
 	}
 	

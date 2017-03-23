@@ -17,6 +17,9 @@ public class MergingReadOnlyObservableListTests {
 	@Mock
 	IListObserver<Integer> integerObserver;
 	
+	@Mock
+	ILinkedReadOnlyObservableList<Integer> integerList;
+	
 	@Captor
 	ArgumentCaptor<Collection<Integer>> integerCaptor;
 
@@ -116,6 +119,25 @@ public class MergingReadOnlyObservableListTests {
 			assertSame(ol.list().getAt(index++), i);
 		}
 	}
+	
+	@Test
+	public void addListAddsObserver() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		when(integerList.getSize()).thenReturn(0);
+		mol.add(integerList);
+		
+		verify(integerList, times(1)).addObserver(any());
+	}
+	
+	@Test
+	public void removeListRemovesObserver() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		when(integerList.getSize()).thenReturn(0);
+		mol.add(integerList);
+		mol.remove(integerList);
+		
+		verify(integerList, times(1)).removeObserver(any());
+	}
 
 	@Test
 	public void addThreeListsCopiesData() {
@@ -197,6 +219,10 @@ public class MergingReadOnlyObservableListTests {
 			assertSame(ol3.list().getAt(i), mol.getAt(index++));
 		}
 		verify(integerObserver, times(1)).removed(eq(5), integerCaptor.capture());
+		int itemIndex = 0;
+		for (Integer i : integerCaptor.getValue()) {
+			assertSame(ol2.list().getAt(itemIndex++), i);
+		}
 	}
 
 }
