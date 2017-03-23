@@ -274,6 +274,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
 		
+		assertNotNull(ool); // to suppress the warning about ool not being used
 		assertEquals(1, item.getObserversNumber());
 		ol.mutator().remove(2, 1);
 
