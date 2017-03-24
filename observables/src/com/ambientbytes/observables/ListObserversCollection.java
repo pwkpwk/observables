@@ -49,6 +49,13 @@ final class ListObserversCollection<T> implements IListObserver<T> {
 			observer.added(startIndex, count);
 		}
 	}
+	
+	@Override
+	public void removing(int startIndex, int count) {
+		for (IListObserver<T> observer : makeInvocationList()) {
+			observer.removing(startIndex, count);
+		}
+	}
 
 	@Override
 	public void removed(int startIndex, Collection<T> items) {

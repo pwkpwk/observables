@@ -7,14 +7,14 @@ import java.util.List;
 final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T> {
 
 	private final IDispatcher dispatcher;
-	private final List<T> data;
+	private final ArrayListEx<T> data;
 		
 	public DispatchingObservableList(IReadOnlyObservableList<T> source, IDispatcher dispatcher) {
 		super(source);
 		int size = source.getSize();
 
 		this.dispatcher = dispatcher;
-		this.data = new ArrayList<T>(source.getSize());
+		this.data = new ArrayListEx<T>(source.getSize());
 		for (int i = 0; i < size; ++i) {
 			this.data.add(source.getAt(i));
 		}
@@ -47,6 +47,10 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 				notifyAdded(startIndex, count);
 			}
 		});
+	}
+	
+	@Override
+	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
 	}
 
 	@Override

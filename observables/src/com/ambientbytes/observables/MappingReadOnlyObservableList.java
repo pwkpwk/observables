@@ -2,13 +2,12 @@ package com.ambientbytes.observables;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedReadOnlyObservableList<TMapped> {
 
 	private ListObserversCollection<TMapped> observers;
 	private final IItemMapper<TSource, TMapped> mapper;
-	private final List<TMapped> data;
+	private final ArrayListEx<TMapped> data;
 	private IListObserver<TSource> sourceObserver;
 	private IReadOnlyObservableList<TSource> source;
 
@@ -17,13 +16,14 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 			IItemMapper<TSource, TMapped> mapper) {
 		this.observers = new ListObserversCollection<TMapped>(new DummyReadWriteLock());
 		this.mapper = mapper;
-		this.data = new ArrayList<>(source.getSize());
+		this.data = new ArrayListEx<>(source.getSize());
 		this.source = source;
 		for (int i = 0; i < source.getSize(); ++i) {
 			this.data.add(mapper.map(source.getAt(i)));
 		}
 		this.sourceObserver = new IListObserver<TSource>() {
 			@Override public void added(int startIndex, int count) { onAdded(startIndex, count); }
+			@Override public void removing(int startIndex, int count) { onRemoving(startIndex, count); }
 			@Override public void removed(int startIndex, Collection<TSource> items) { onRemoved(startIndex, items); }
 			@Override public void moved(int oldStartIndex, int newStartIndex, int count) { onMoved(oldStartIndex, newStartIndex, count); }
 			@Override public void reset(Collection<TSource> oldItems) { onReset(oldItems); }
@@ -68,6 +68,10 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		}
 		data.addAll(startIndex, mapped);
 		observers.added(startIndex, count);
+	}
+	
+	private final void onRemoving(int startIndex, int count) {
+		observers.removing(startIndex, count);
 	}
 	
 	private final void onRemoved(int startIndex, Collection<TSource> items) {

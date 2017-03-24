@@ -69,6 +69,10 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 
 		@Override
+		public void removing(int startIndex, int count) {
+		}
+
+		@Override
 		public void removed(int startIndex, Collection<T> items) {
 			Lock l = lock.writeLock();
 

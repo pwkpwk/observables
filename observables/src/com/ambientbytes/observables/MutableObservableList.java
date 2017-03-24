@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 	
 	private final ReadWriteLock lock;
-	private final List<T> data;
+	private final ArrayListEx<T> data;
 	private final ListObserversCollection<T> observers;
 	private final IListMutator<T> mutator;
 	
@@ -108,11 +108,12 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			}
 			
 			if (length > 0) {
+				observers.removing(index, length);
 				ArrayList<T> removedValues = new ArrayList<T>(length);
 				for (int i = 0; i < length; ++i) {
 					removedValues.add(data.get(index));
-					data.remove(index);
 				}
+				data.remove(index, length);
 				
 				observers.removed(index, removedValues);
 			}
@@ -134,42 +135,10 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 
 		private void moveUnsafe(int startIndex, int newIndex, int count) {
-			if (startIndex < 0 || newIndex < 0 || startIndex >= data.size() || newIndex >= data.size()) {
-				throw new IndexOutOfBoundsException();
-			}
-
-			if (startIndex != newIndex) {
-				int length = count;
-				
-				if (startIndex + length > data.size()) {
-					length = data.size() - startIndex;
-				}
-				
-				if (length > 0) {
-					if (newIndex + length >= data.size()) {
-						throw new IndexOutOfBoundsException();
-					}
-					
-					final int low, pivot, high;
-					
-					if (startIndex < newIndex) {
-						low = startIndex;
-						pivot = startIndex + length;
-						high = newIndex + length;
-					} else {
-						low = newIndex;
-						pivot = startIndex;
-						high = pivot + length;
-					}
-					// To shift the source range we find a pivoting point and rotate the part of the list
-					// that cover the entire range affected by the move three times - left and right of the pivoting point
-					// and then the entire range.
-					reverseRange(low, pivot);
-					reverseRange(pivot, high);
-					reverseRange(low, high);
-
-					observers.moved(startIndex, newIndex, length);
-				}
+			data.move(startIndex, newIndex, count);
+			
+			if (count > 0) {
+				observers.moved(startIndex, newIndex, count);
 			}
 		}
 		
@@ -181,21 +150,6 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			
 			observers.reset(oldItems);
 		}
-		
-		private final void reverseRange(int low, int high) {
-			if (high - low > 1) {
-				int l = low;
-				int h = high - 1;
-				
-				while (l < h) {
-					T tmp = data.get(l);
-					data.set(l, data.get(h));
-					data.set(h,  tmp);
-					l++;
-					h--;
-				}
-			}
-		}
 	}
 	
 	public MutableObservableList(final ReadWriteLock lock) {
@@ -204,7 +158,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 		
 		this.lock = lock;
-		this.data = new ArrayList<T>();
+		this.data = new ArrayListEx<T>();
 		this.observers = new ListObserversCollection<T>(lock);
 		this.mutator = new Mutator();
 	}

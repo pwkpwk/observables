@@ -15,6 +15,13 @@ public interface IListObserver<T> {
 	 * @param count number of added items.
 	 */
 	void added(int startIndex, int count);
+
+	/**
+	 * Called immediately before removing items from the observed list.
+	 * @param startIndex zero-based index of the first item to be removed.
+	 * @param count number of items to be removed.
+	 */
+	void removing(int startIndex, int count);
 	
 	/**
 	 * Called after items have been removed from the observed list.

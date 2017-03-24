@@ -3,10 +3,8 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
@@ -96,6 +94,10 @@ final class FilteringReadOnlyObservableList<T>
 		}
 	}
 
+	@Override
+	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
+	}
+	
 	@Override
 	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
 		for (T item : items) {
