@@ -95,28 +95,30 @@ final class FilteringReadOnlyObservableList<T>
 	}
 
 	@Override
-	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
-	}
-	
-	@Override
-	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
-		for (T item : items) {
-			ItemContainer container = filteredOutItems.remove(item);
-
+	protected void onRemoving(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			final T removedItem = source.getAt(i);
+			ItemContainer container = filteredOutItems.remove(removedItem);
+			
 			if (container != null) {
+				// No need to notify observers; the item was not visible to them.
 				container.unadvise();
 			} else {
-				int index = indexOfContainer(item);
+				int index = indexOfContainer(removedItem);
 				
 				if (index >= 0) {
-					final List<T> removedItem = new ArrayList<T>(1);
 					data.get(index).unadvise();
-					removedItem.add(item);
+					notifyRemoving(index, 1);
 					data.remove(index);
-					notifyRemoved(index, removedItem);
+					notifyRemoved(index, 1);
 				}
 			}
 		}
+	}
+	
+	@Override
+	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count) {
+		// Do nothing. Items have been removed in onRemoving.
 	}
 
 	@Override
@@ -188,14 +190,13 @@ final class FilteringReadOnlyObservableList<T>
 				notifyAdded(index, 1);
 			}
 		} else {
-			int index = indexOfContainer(item);
+			final int index = indexOfContainer(item);
 			
 			if (index >= 0) {
-				Collection<T> removedItems = new ArrayList<T>(1);
-				removedItems.add(item);
 				filteredOutItems.put(item, data.get(index));
+				notifyRemoving(index, 1);
 				data.remove(index);
-				notifyRemoved(index, removedItems);
+				notifyRemoved(index, 1);
 			}
 		}
 	}

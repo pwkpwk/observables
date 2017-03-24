@@ -24,8 +24,8 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 			}
 			
 			@Override
-			public void removed(int startIndex, Collection<T> items) {
-				onRemoved(source, startIndex, items);
+			public void removed(int startIndex, int count) {
+				onRemoved(source, startIndex, count);
 			}
 
 			@Override
@@ -65,7 +65,7 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	protected void onUnlinked() {}
 	protected abstract void onAdded(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count);
-	protected abstract void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items);
+	protected abstract void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count);
 	protected abstract void onReset(IReadOnlyObservableList<T> source, Collection<T> items);
 	
@@ -77,8 +77,8 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 		this.observers.removing(startIndex, count);
 	}
 	
-	protected final void notifyRemoved(int startIndex, Collection<T> items) {
-		this.observers.removed(startIndex, items);
+	protected final void notifyRemoved(int startIndex, int count) {
+		this.observers.removed(startIndex, count);
 	}
 
 	protected final void notifyMoved(int oldStartIndex, int newStartIndex, int count) {

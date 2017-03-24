@@ -109,13 +109,8 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			
 			if (length > 0) {
 				observers.removing(index, length);
-				ArrayList<T> removedValues = new ArrayList<T>(length);
-				for (int i = 0; i < length; ++i) {
-					removedValues.add(data.get(index));
-				}
 				data.remove(index, length);
-				
-				observers.removed(index, removedValues);
+				observers.removed(index, length);
 			}
 			
 			return length;
@@ -127,17 +122,19 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 
 		private void clearUnsafe() {
-			if (data.size() > 0) {
-				Collection<T> oldData = new ArrayList<T>(data);
+			final int size = data.size();
+			
+			if (size > 0) {
+				observers.removing(0, size);
 				data.clear();
-				observers.removed(0, oldData);
+				observers.removed(0, size);
 			}
 		}
 
 		private void moveUnsafe(int startIndex, int newIndex, int count) {
 			data.move(startIndex, newIndex, count);
 			
-			if (count > 0) {
+			if (startIndex != newIndex && count > 0) {
 				observers.moved(startIndex, newIndex, count);
 			}
 		}

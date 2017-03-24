@@ -112,9 +112,8 @@ public class MutableObservableListTests {
 
 		assertEquals(1, mol.getSize());
 		assertSame(value2, mol.getAt(0));
-		verify(observer).removed(eq(0), captor.capture());
-		assertEquals(1, captor.getValue().size());
-		assertTrue(captor.getValue().contains(value1));
+		verify(observer).removing(eq(0), eq(1));
+		verify(observer).removed(eq(0), eq(1));
 	}
 	
 	@Test
@@ -278,10 +277,9 @@ public class MutableObservableListTests {
 		mol.getMutator().move(0, 2, origin.length);
 	}
 
-	@Test
-	public void moveTooMuchTrims() {
+	@Test(expected = IndexOutOfBoundsException.class)
+	public void moveTooMuchThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		final int[] target = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
 		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
 
 		for (int i = 0; i < origin.length; ++i) {
@@ -289,12 +287,6 @@ public class MutableObservableListTests {
 		}
 		
 		mol.getMutator().move(1, 0, origin.length);
-
-		assertEquals(target.length, mol.getSize());
-		assertEquals(target.length, origin.length);
-		for (int i = 0; i < target.length; ++i) {
-			assertEquals(target[i], mol.getAt(i).intValue());
-		}
 	}
 	
 	@Test
@@ -339,7 +331,8 @@ public class MutableObservableListTests {
 		
 		mol.getMutator().remove(1, 0);
 
-		verify(observer, never()).removed(anyInt(), captor.capture());
+		verify(observer, never()).removing(anyInt(), anyInt());
+		verify(observer, never()).removed(anyInt(), anyInt());
 	}
 	
 	@Test
@@ -349,7 +342,8 @@ public class MutableObservableListTests {
 		
 		mol.getMutator().clear();
 
-		verify(observer, never()).removed(anyInt(), captor.capture());
+		verify(observer, never()).removing(anyInt(), anyInt());
+		verify(observer, never()).removed(anyInt(), anyInt());
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)

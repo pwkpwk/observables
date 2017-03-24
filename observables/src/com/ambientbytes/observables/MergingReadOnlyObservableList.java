@@ -33,14 +33,14 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 		
 		public int removeData() {
+			//
+			// Remove all items of the ListInfo from the merged list.
+			//
 			int length = list.getSize();
-			Collection<T> removed = new ArrayList<>(length);
 
-			for (int i = 0; i < length; ++i) {
-				removed.add(data.get(offset + i));
-			}
+			observers.removing(offset, length);
 			data.remove(offset, length);
-			observers.removed(offset, removed);
+			observers.removed(offset, length);
 			
 			return length;
 		}
@@ -70,19 +70,19 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 		@Override
 		public void removing(int startIndex, int count) {
-		}
-
-		@Override
-		public void removed(int startIndex, Collection<T> items) {
 			Lock l = lock.writeLock();
 
 			l.lock();
 			
 			try {
-				onRemovedUnsafe(startIndex, items);
+				onRemovedUnsafe(startIndex, count);
 			} finally {
 				l.unlock();
 			}
+		}
+
+		@Override
+		public void removed(int startIndex, int count) {
 		}
 
 		@Override
@@ -129,8 +129,10 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			observers.added(offset + startIndex, count);
 		}
 		
-		private void onRemovedUnsafe(int startIndex, Collection<T> items) {
-			//
+		private void onRemovedUnsafe(int startIndex, int count) {
+			observers.removing(offset + startIndex, count);
+			data.remove(offset + startIndex, count);
+			observers.removed(offset + startIndex, count);
 		}
 	}
 	

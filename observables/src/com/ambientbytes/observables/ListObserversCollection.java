@@ -58,9 +58,9 @@ final class ListObserversCollection<T> implements IListObserver<T> {
 	}
 
 	@Override
-	public void removed(int startIndex, Collection<T> items) {
+	public void removed(int startIndex, int count) {
 		for (IListObserver<T> observer : makeInvocationList()) {
-			observer.removed(startIndex, items);
+			observer.removed(startIndex, count);
 		}
 	}
 

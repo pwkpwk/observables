@@ -110,23 +110,26 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	@Override
-	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
+	protected void onRemoving(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			final T item = source.getAt(i);
+			final int index = indexOfItem(item);
+			
+			if (index >= 0) {
+				ItemContainer container = data.get(index);
+				// Unadvise the container before notifying subscribers about the change
+				// so if the subscribers will mutate the item in the observer callbacks,
+				// the correct item will be removed from data.
+				container.unadvise();
+				notifyRemoving(index, 1);
+				data.remove(index);
+				notifyRemoved(index, 1);
+			}
+		}
 	}
 
 	@Override
-	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
-		for (T item : items) {
-			int index = indexOfItem(item);
-			
-			if (index >= 0) {
-				List<T> removed = new ArrayList<>(1);
-				ItemContainer container = data.get(index);
-				data.remove(index);
-				container.unadvise();
-				removed.add(item);
-				notifyRemoved(index, removed);
-			}
-		}
+	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count) {
 	}
 
 	@Override
@@ -158,13 +161,19 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private void onItemMutated(T item) {
-		int index = indexOfMutatedItem(item);
-		Collection<T> removedItems = new ArrayList<>(1);
-		ItemContainer container = data.get(index);
-		data.remove(index);
-		removedItems.add(item);
-		notifyRemoved(index, removedItems);
-		data.add(indexOfFirstGreaterOrEqualItem(item), container);
+		// TODO: needs optimization - indexOfFirstGreaterOrEqualItem should ignore the mutated item
+		final int oldIndex = indexOfMutatedItem(item);
+		ItemContainer container = data.get(oldIndex);
+		data.remove(oldIndex);
+		final int newIndex = indexOfFirstGreaterOrEqualItem(item);
+		
+		if (newIndex != oldIndex) {
+			data.add(newIndex, container);
+			notifyMoved(oldIndex, newIndex, 1);
+		} else {
+			// Simply add the item back where it was.
+			data.add(newIndex, container);
+		}
 	}
 	
 	private Comparator<ItemContainer> makeComparator(final IItemsOrder<T> order) {

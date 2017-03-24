@@ -34,16 +34,14 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	protected void onAdded(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
 		final List<T> addedItems = new ArrayList<T>(count);
 		
-		for (int i = 0; i < count; ++i) {
-			addedItems.add(source.getAt(startIndex + i));
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			addedItems.add(source.getAt(i));
 		}
 		
 		dispatcher.dispatch(new IAction() {
 			@Override
 			public void execute() {
-				for (int i = 0; i < count; ++i) {
-					data.add(startIndex + i, addedItems.get(i));
-				}
+				data.addAll(startIndex, addedItems);
 				notifyAdded(startIndex, count);
 			}
 		});
@@ -51,41 +49,26 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	
 	@Override
 	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
-	}
-
-	@Override
-	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, Collection<T> items) {
 		dispatcher.dispatch(new IAction() {
 			@Override
 			public void execute() {
-				for (@SuppressWarnings("unused") T item : items) {
-					data.remove(startIndex);
-				}
-				notifyRemoved(startIndex, items);
+				notifyRemoving(startIndex, count);
+				data.remove(startIndex, count);
+				notifyRemoved(startIndex, count);
 			}
 		});
 	}
 
 	@Override
+	protected void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count) {
+	}
+
+	@Override
 	protected void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count) {
-		final int low, pivot, high;
-		
-		if (oldStartIndex < newStartIndex) {
-			low = oldStartIndex;
-			pivot = oldStartIndex + count;
-			high = newStartIndex + count;
-		} else {
-			low = newStartIndex;
-			pivot = oldStartIndex;
-			high = pivot + count;
-		}
-				
 		dispatcher.dispatch(new IAction() {
 			@Override
 			public void execute() {
-				reverseRange(low, pivot);
-				reverseRange(pivot, high);
-				reverseRange(low, high);
+				data.move(oldStartIndex, newStartIndex, count);
 				notifyMoved(oldStartIndex, newStartIndex, count);
 			}
 		});
@@ -110,20 +93,5 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 				notifyReset(oldItems);
 			}
 		});
-	}
-	
-	private void reverseRange(int low, int high) {
-		if (high - low > 1) {
-			int l = low;
-			int h = high - 1;
-			
-			while (l < h) {
-				T tmp = data.get(l);
-				data.set(l, data.get(h));
-				data.set(h,  tmp);
-				l++;
-				h--;
-			}
-		}
 	}
 }

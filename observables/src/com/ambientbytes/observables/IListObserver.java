@@ -26,9 +26,9 @@ public interface IListObserver<T> {
 	/**
 	 * Called after items have been removed from the observed list.
 	 * @param startIndex zero-based index of the first removed item.
-	 * @param items removed items.
+	 * @param count number of removed items.
 	 */
-	void removed(int startIndex, Collection<T> items);
+	void removed(int startIndex, int count);
 
 	/**
 	 * Called after items have been moved in the observed list.

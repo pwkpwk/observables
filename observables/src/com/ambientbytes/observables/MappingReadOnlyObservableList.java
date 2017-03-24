@@ -24,7 +24,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		this.sourceObserver = new IListObserver<TSource>() {
 			@Override public void added(int startIndex, int count) { onAdded(startIndex, count); }
 			@Override public void removing(int startIndex, int count) { onRemoving(startIndex, count); }
-			@Override public void removed(int startIndex, Collection<TSource> items) { onRemoved(startIndex, items); }
+			@Override public void removed(int startIndex, int count) { /* do nothing */ }
 			@Override public void moved(int oldStartIndex, int newStartIndex, int count) { onMoved(oldStartIndex, newStartIndex, count); }
 			@Override public void reset(Collection<TSource> oldItems) { onReset(oldItems); }
 		};
@@ -72,18 +72,8 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	
 	private final void onRemoving(int startIndex, int count) {
 		observers.removing(startIndex, count);
-	}
-	
-	private final void onRemoved(int startIndex, Collection<TSource> items) {
-		final int size = items.size();
-		final Collection<TMapped> removed = new ArrayList<>(size);
-		
-		for (int i = 0; i < size; ++i) {
-			TMapped item = data.get(startIndex);
-			data.remove(startIndex);
-			removed.add(item);
-		}
-		observers.removed(startIndex, removed);
+		data.remove(startIndex, count);
+		observers.removed(startIndex, count);
 	}
 	
 	private final void onMoved(int oldStartIndex, int newStartIndex, int count) {
