@@ -5,7 +5,7 @@ import java.util.Collection;
 
 final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedReadOnlyObservableList<TMapped> {
 
-	private ListObserversCollection<TMapped> observers;
+	private ListObservers<TMapped> observers;
 	private final IItemMapper<TSource, TMapped> mapper;
 	private final ArrayListEx<TMapped> data;
 	private IListObserver sourceObserver;
@@ -14,7 +14,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	public MappingReadOnlyObservableList(
 			IReadOnlyObservableList<TSource> source,
 			IItemMapper<TSource, TMapped> mapper) {
-		this.observers = new ListObserversCollection<TMapped>(new DummyReadWriteLock());
+		this.observers = new ListObservers<TMapped>(new DummyReadWriteLock());
 		this.mapper = mapper;
 		this.data = new ArrayListEx<>(source.getSize());
 		this.source = source;

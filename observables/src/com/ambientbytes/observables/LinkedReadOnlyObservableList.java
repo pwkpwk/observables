@@ -8,12 +8,12 @@ package com.ambientbytes.observables;
  */
 abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T> {
 
-	private final ListObserversCollection<T> observers;
+	private final ListObservers<T> observers;
 	private IReadOnlyObservableList<T> source;
 	private IListObserver observer;
 	
 	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source) {
-		this.observers = new ListObserversCollection<T>(new DummyReadWriteLock());
+		this.observers = new ListObservers<T>(new DummyReadWriteLock());
 		this.source = source;
 		this.observer = new IListObserver() {
 

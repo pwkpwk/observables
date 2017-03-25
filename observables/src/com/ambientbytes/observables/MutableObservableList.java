@@ -8,7 +8,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 	
 	private final ReadWriteLock lock;
 	private final ArrayListEx<T> data;
-	private final ListObserversCollection<T> observers;
+	private final ListObservers<T> observers;
 	private final IListMutator<T> mutator;
 	
 	private final class Mutator implements IListMutator<T> {
@@ -152,7 +152,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		this.lock = lock;
 		this.data = new ArrayListEx<T>();
-		this.observers = new ListObserversCollection<T>(lock);
+		this.observers = new ListObservers<T>(lock);
 		this.mutator = new Mutator();
 	}
 	

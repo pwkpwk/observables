@@ -26,7 +26,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportAddedReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.added(0, 1);
@@ -36,7 +36,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void removeObserverNoEvents() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.remove(observer);
@@ -47,7 +47,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportRemovingReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.removing(0, 1);
@@ -57,7 +57,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportRemovedReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.removed(0, 1);
@@ -67,7 +67,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportMovedReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.moved(0, 1, 5);
@@ -77,7 +77,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportResettingReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.resetting();
@@ -87,7 +87,7 @@ public class ListObserversCollectionTests {
 
 	@Test
 	public void reportResetReported() {
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
 		
 		collection.add(observer);
 		collection.reset();
@@ -101,7 +101,7 @@ public class ListObserversCollectionTests {
 		ReadWriteLock monitor = mock(ReadWriteLock.class);
 		when(monitor.readLock()).thenReturn(lock);
 		when(monitor.writeLock()).thenReturn(lock);
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(monitor);
+		ListObservers<Object> collection = new ListObservers<>(monitor);
 		
 		collection.add(observer);
 
@@ -117,7 +117,7 @@ public class ListObserversCollectionTests {
 		ReadWriteLock monitor = mock(ReadWriteLock.class);
 		when(monitor.readLock()).thenReturn(lock);
 		when(monitor.writeLock()).thenReturn(lock);
-		ListObserversCollection<Object> collection = new ListObserversCollection<>(monitor);
+		ListObservers<Object> collection = new ListObservers<>(monitor);
 		
 		collection.remove(observer);
 

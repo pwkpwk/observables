@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T>, IReadOnlyObservableListSet<T> {
 	
 	private final ReadWriteLock lock;
-	private final ListObserversCollection<T> observers;
+	private final ListObservers<T> observers;
 	private final List<ListInfo> lists;
 	private final ArrayListEx<T> data;
 	
@@ -158,7 +158,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 	
 	public MergingReadOnlyObservableList(ReadWriteLock lock) {
 		this.lock = lock;
-		this.observers = new ListObserversCollection<>(lock);
+		this.observers = new ListObservers<>(lock);
 		this.lists = new ArrayList<>();
 		this.data = new ArrayListEx<>();
 	}

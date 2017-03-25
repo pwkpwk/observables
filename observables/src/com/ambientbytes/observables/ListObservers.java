@@ -6,12 +6,12 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-final class ListObserversCollection<T> implements IListObserver {
+final class ListObservers<T> implements IListObserver {
 	
 	private final ReadWriteLock lock;
 	private final Set<IListObserver> observers;
 	
-	public ListObserversCollection(final ReadWriteLock lock) {
+	public ListObservers(final ReadWriteLock lock) {
 		this.lock = lock;
 		this.observers = new HashSet<IListObserver>();
 	}
