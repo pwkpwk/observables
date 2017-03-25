@@ -8,7 +8,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	private ListObserversCollection<TMapped> observers;
 	private final IItemMapper<TSource, TMapped> mapper;
 	private final ArrayListEx<TMapped> data;
-	private IListObserver<TSource> sourceObserver;
+	private IListObserver sourceObserver;
 	private IReadOnlyObservableList<TSource> source;
 
 	public MappingReadOnlyObservableList(
@@ -21,12 +21,13 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		for (int i = 0; i < source.getSize(); ++i) {
 			this.data.add(mapper.map(source.getAt(i)));
 		}
-		this.sourceObserver = new IListObserver<TSource>() {
+		this.sourceObserver = new IListObserver() {
 			@Override public void added(int startIndex, int count) { onAdded(startIndex, count); }
 			@Override public void removing(int startIndex, int count) { onRemoving(startIndex, count); }
 			@Override public void removed(int startIndex, int count) { /* do nothing */ }
 			@Override public void moved(int oldStartIndex, int newStartIndex, int count) { onMoved(oldStartIndex, newStartIndex, count); }
-			@Override public void reset(Collection<TSource> oldItems) { onReset(oldItems); }
+			@Override public void resetting() { onResetting(); }
+			@Override public void reset() { onReset(); }
 		};
 		this.source.addObserver(sourceObserver);		
 	}
@@ -42,12 +43,12 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	}
 
 	@Override
-	public void addObserver(IListObserver<TMapped> observer) {
+	public void addObserver(IListObserver observer) {
 		observers.add(observer);
 	}
 
 	@Override
-	public void removeObserver(IListObserver<TMapped> observer) {
+	public void removeObserver(IListObserver observer) {
 		observers.remove(observer);
 	}
 
@@ -96,15 +97,18 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		observers.moved(oldStartIndex, newStartIndex, count);
 	}
 	
-	private final void onReset(Collection<TSource> oldItems) {
-		Collection<TMapped> removedItems = new ArrayList<>(data);
+	private final void onResetting() {
+		observers.resetting();
+	}
+	
+	private final void onReset() {
 		final int size = source.getSize();
 		
 		data.clear();
 		for (int i = 0; i < size; ++i) {
 			data.add(mapper.map(source.getAt(i)));
 		}
-		observers.reset(removedItems);
+		observers.reset();
 	}
 	
 	private final void reverseRange(int low, int high) {

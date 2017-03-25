@@ -125,15 +125,16 @@ final class FilteringReadOnlyObservableList<T>
 	protected void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count) {
 		// Do nothing. Moving items in the source collection does not affect filtering.
 	}
+	
+	@Override
+	protected void onResetting(IReadOnlyObservableList<T> source) {
+		notifyResetting();
+	}
 
 	@Override
-	protected void onReset(IReadOnlyObservableList<T> source, Collection<T> items) {
-		Collection<T> oldItems = new ArrayList<T>(data.size());
-		for (ItemContainer c : data) {
-			oldItems.add(c.item());
-		}
+	protected void onReset(IReadOnlyObservableList<T> source) {
 		removeMutableObserverFromItems(data);
-		removeMutableObserverFromItems(filteredOutItems.values());
+		removeMutableObserverFromItems(filteredOutItems.values());		
 		data.clear();
 		filteredOutItems.clear();
 
@@ -143,7 +144,7 @@ final class FilteringReadOnlyObservableList<T>
 			addItem(source.getAt(i));
 		}
 		
-		notifyReset(oldItems);
+		notifyReset();
 	}
 
 	@Override
@@ -154,14 +155,10 @@ final class FilteringReadOnlyObservableList<T>
 	@Override
 	public void setFilter(IItemFilter<T> filter) {
 		if (this.filter != filter) {
-			this.filter = filter;
-			
-			Collection<T> oldItems = new ArrayList<T>(data.size());
 			Collection<ItemContainer> allItems = new ArrayList<ItemContainer>(data.size() + filteredOutItems.size());
 			
-			for (ItemContainer c : data) {
-				oldItems.add(c.item());
-			}
+			this.filter = filter;
+			notifyResetting();
 			
 			allItems.addAll(data);
 			allItems.addAll(filteredOutItems.values());
@@ -176,7 +173,7 @@ final class FilteringReadOnlyObservableList<T>
 				}
 			}
 			
-			notifyReset(oldItems);
+			notifyReset();
 		}
 	}
 	

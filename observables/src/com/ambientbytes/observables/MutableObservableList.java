@@ -1,8 +1,6 @@
 package com.ambientbytes.observables;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -140,12 +138,10 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 		
 		private void resetUnsafe(Collection<T> newItems) {
-			List<T> oldItems = new ArrayList<>(data);
-			
+			observers.resetting();
 			data.clear();
 			data.addAll(newItems);
-			
-			observers.reset(oldItems);
+			observers.reset();
 		}
 	}
 	
@@ -165,12 +161,12 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 	}
 
 	@Override
-	public final void addObserver(IListObserver<T> observer) {
+	public final void addObserver(IListObserver observer) {
 		observers.add(observer);
 	}
 
 	@Override
-	public final void removeObserver(IListObserver<T> observer) {
+	public final void removeObserver(IListObserver observer) {
 		observers.remove(observer);
 	}
 

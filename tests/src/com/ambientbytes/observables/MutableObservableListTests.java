@@ -4,17 +4,11 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -22,14 +16,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class MutableObservableListTests {
 	
-	@Mock
-	IListObserver<Integer> observer;
-	
-	@Captor
-	ArgumentCaptor<Collection<Integer>> captor;
+	@Mock IListObserver observer;
+	@Captor ArgumentCaptor<Collection<Integer>> captor;
 	
 	@Before
 	public void setUp() {
@@ -407,8 +400,17 @@ public class MutableObservableListTests {
 	public void resetNotifies() {
 		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] updated = { 0, 1, 7, 8 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		final List<Integer> capturedValues = new ArrayList<>();
 		Collection<Integer> newContents = new ArrayList<Integer>(updated.length);
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				for (int i = 0; i < mol.getSize(); ++i) {
+					capturedValues.add(mol.getAt(i));
+				}
+				return null;
+			}
+		}).when(observer).resetting();
 
 		for (int i = 0; i < original.length; ++i) {
 			mol.getMutator().insert(i, Integer.valueOf(original[i]));
@@ -420,10 +422,11 @@ public class MutableObservableListTests {
 		
 		mol.getMutator().reset(newContents);
 
-		verify(observer, times(1)).reset(captor.capture());
-		int i = 0;
-		for (Integer v : captor.getValue()) {
-			assertEquals(original[i++], v.intValue());
+		verify(observer, times(1)).resetting();
+		verify(observer, times(1)).reset();
+		assertEquals(original.length, capturedValues.size());
+		for (int i = 0; i < original.length; ++i) {
+			assertEquals(original[i], capturedValues.get(i).intValue());
 		}
 	}
 

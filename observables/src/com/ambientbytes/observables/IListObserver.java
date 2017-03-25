@@ -1,14 +1,12 @@
 package com.ambientbytes.observables;
 
-import java.util.Collection;
-
 /**
  * Observer of an observable list.
  * @author Pavel Karpenko
  *
  * @param <T> type of items of the observed list.
  */
-public interface IListObserver<T> {
+public interface IListObserver {
 	/**
 	 * Called after new items have been added to the observed list.
 	 * @param startIndex zero-based index of the first added item.
@@ -39,8 +37,12 @@ public interface IListObserver<T> {
 	void moved(int oldStartIndex, int newStartIndex, int count);
 
 	/**
-	 * Contents of the observed list have been reset.
-	 * @param oldItems contents of the list before it's been reset.
+	 * Called before contents of the observed list will be completely replaced.
 	 */
-	void reset(Collection<T> oldItems);
+	void resetting();
+	
+	/**
+	 * Called after contents of the observed list have been completely replaced.
+	 */
+	void reset();
 }

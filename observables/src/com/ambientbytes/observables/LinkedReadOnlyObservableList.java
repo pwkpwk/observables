@@ -1,17 +1,21 @@
 package com.ambientbytes.observables;
 
-import java.util.Collection;
-
+/**
+ * Base class for observable lists that observe changes in one other observable list.
+ * @author Pavel Karpenko
+ *
+ * @param <T> type of items in the list.
+ */
 abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T> {
 
 	private final ListObserversCollection<T> observers;
 	private IReadOnlyObservableList<T> source;
-	private IListObserver<T> observer;
+	private IListObserver observer;
 	
 	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source) {
 		this.observers = new ListObserversCollection<T>(new DummyReadWriteLock());
 		this.source = source;
-		this.observer = new IListObserver<T>() {
+		this.observer = new IListObserver() {
 
 			@Override
 			public void added(int startIndex, int count) {
@@ -32,10 +36,15 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 			public void moved(int oldStartIndex, int newStartIndex, int count) {
 				onMoved(source, oldStartIndex, newStartIndex, count);
 			}
+			
+			@Override
+			public void resetting() {
+				onResetting(source);
+			}
 
 			@Override
-			public void reset(Collection<T> oldItems) {
-				onReset(source, oldItems);
+			public void reset() {
+				onReset(source);
 			}
 			
 		};
@@ -43,12 +52,12 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	}
 
 	@Override
-	public final void addObserver(IListObserver<T> observer) {
+	public final void addObserver(IListObserver observer) {
 		this.observers.add(observer);
 	}
 
 	@Override
-	public final void removeObserver(IListObserver<T> observer) {
+	public final void removeObserver(IListObserver observer) {
 		this.observers.remove(observer);
 	}
 
@@ -67,7 +76,8 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	protected abstract void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count);
-	protected abstract void onReset(IReadOnlyObservableList<T> source, Collection<T> items);
+	protected abstract void onResetting(IReadOnlyObservableList<T> source);
+	protected abstract void onReset(IReadOnlyObservableList<T> source);
 	
 	protected final void notifyAdded(int startIndex, int count) {
 		this.observers.added(startIndex, count);
@@ -85,7 +95,11 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 		this.observers.moved(oldStartIndex, newStartIndex, count);
 	}
 	
-	protected final void notifyReset(Collection<T> oldItems) {
-		this.observers.reset(oldItems);
+	protected final void notifyResetting() {
+		this.observers.resetting();
+	}
+	
+	protected final void notifyReset() {
+		this.observers.reset();
 	}
 }

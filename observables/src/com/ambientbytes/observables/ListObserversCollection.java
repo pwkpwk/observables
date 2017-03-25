@@ -1,23 +1,22 @@
 package com.ambientbytes.observables;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-final class ListObserversCollection<T> implements IListObserver<T> {
+final class ListObserversCollection<T> implements IListObserver {
 	
 	private final ReadWriteLock lock;
-	private final Set<IListObserver<T>> observers;
+	private final Set<IListObserver> observers;
 	
 	public ListObserversCollection(final ReadWriteLock lock) {
 		this.lock = lock;
-		this.observers = new HashSet<IListObserver<T>>();
+		this.observers = new HashSet<IListObserver>();
 	}
 	
-	public void add(IListObserver<T> observer) {
+	public void add(IListObserver observer) {
 		final Lock l = lock.writeLock();
 		
 		l.lock();
@@ -31,7 +30,7 @@ final class ListObserversCollection<T> implements IListObserver<T> {
 		}
 	}
 	
-	public void remove(IListObserver<T> observer) {
+	public void remove(IListObserver observer) {
 		final Lock l = lock.writeLock();
 		
 		l.lock();
@@ -45,47 +44,54 @@ final class ListObserversCollection<T> implements IListObserver<T> {
 
 	@Override
 	public void added(int startIndex, int count) {
-		for (IListObserver<T> observer : makeInvocationList()) {
+		for (IListObserver observer : makeInvocationList()) {
 			observer.added(startIndex, count);
 		}
 	}
 	
 	@Override
 	public void removing(int startIndex, int count) {
-		for (IListObserver<T> observer : makeInvocationList()) {
+		for (IListObserver observer : makeInvocationList()) {
 			observer.removing(startIndex, count);
 		}
 	}
 
 	@Override
 	public void removed(int startIndex, int count) {
-		for (IListObserver<T> observer : makeInvocationList()) {
+		for (IListObserver observer : makeInvocationList()) {
 			observer.removed(startIndex, count);
 		}
 	}
 
 	@Override
 	public void moved(int oldStartIndex, int newStartIndex, int count) {
-		for (IListObserver<T> observer : makeInvocationList()) {
+		for (IListObserver observer : makeInvocationList()) {
 			observer.moved(oldStartIndex, newStartIndex, count);
 		}
 	}
 
 	@Override
-	public void reset(Collection<T> oldItems) {
-		for (IListObserver<T> observer : makeInvocationList()) {
-			observer.reset(oldItems);
+	public void resetting() {
+		for (IListObserver observer : makeInvocationList()) {
+			observer.resetting();
+		}
+	}
+
+	@Override
+	public void reset() {
+		for (IListObserver observer : makeInvocationList()) {
+			observer.reset();
 		}
 	}
 	
-	private Iterable<IListObserver<T>> makeInvocationList() {
-		Iterable<IListObserver<T>> iterable;
+	private Iterable<IListObserver> makeInvocationList() {
+		Iterable<IListObserver> iterable;
 		final Lock l = lock.readLock();
 		
 		l.lock();
 		
 		try {
-			iterable = new ArrayList<IListObserver<T>>(observers);
+			iterable = new ArrayList<IListObserver>(observers);
 		} finally {
 			l.unlock();
 		}

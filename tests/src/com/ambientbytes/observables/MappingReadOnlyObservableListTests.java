@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class MappingReadOnlyObservableListTests {
 	
@@ -23,7 +26,7 @@ public class MappingReadOnlyObservableListTests {
 	}
 	
 	@Mock
-	IListObserver<String> stringObserver;
+	IListObserver stringObserver;
 	
 	@Captor
 	ArgumentCaptor<Collection<String>> stringsCaptor;
@@ -194,12 +197,21 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
 		mol.addObserver(stringObserver);
 		Collection<Integer> newSourceValues = new ArrayList<>();
 		newSourceValues.add(10);
 		newSourceValues.add(20);
 		newSourceValues.add(30);
+		final List<String> capturedValues = new ArrayList<>();
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				for (int i = 0; i < mol.getSize(); ++i) {
+					capturedValues.add(mol.getAt(i));
+				}
+				return null;
+			}
+		}).when(stringObserver).resetting();
 		
 		ol.mutator().reset(newSourceValues);
 		
@@ -208,11 +220,11 @@ public class MappingReadOnlyObservableListTests {
 		for (String s : new String[] { "item:10", "item:20", "item:30" }) {
 			assertEquals(s, mol.getAt(index++));
 		}
-		verify(stringObserver, times(1)).reset(stringsCaptor.capture());
-		String[] capturedValues = { "item:0", "item:1", "item:2", "item:3", "item:4", "item:5", "item:6", "item:7" };
-		index = 0;
-		for (String s : stringsCaptor.getValue()) {
-			assertEquals(capturedValues[index++], s);
+		verify(stringObserver, times(1)).resetting();
+		verify(stringObserver, times(1)).reset();
+		String[] testValues = { "item:0", "item:1", "item:2", "item:3", "item:4", "item:5", "item:6", "item:7" };
+		for (index = 0; index < capturedValues.size(); ++index) {
+			assertEquals(testValues[index], capturedValues.get(index));
 		}
 	}
 

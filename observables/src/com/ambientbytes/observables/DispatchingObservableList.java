@@ -1,7 +1,6 @@
 package com.ambientbytes.observables;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T> {
@@ -39,8 +38,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 		}
 		
 		dispatcher.dispatch(new IAction() {
-			@Override
-			public void execute() {
+			@Override public void execute() {
 				data.addAll(startIndex, addedItems);
 				notifyAdded(startIndex, count);
 			}
@@ -50,8 +48,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	@Override
 	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
 		dispatcher.dispatch(new IAction() {
-			@Override
-			public void execute() {
+			@Override public void execute() {
 				notifyRemoving(startIndex, count);
 				data.remove(startIndex, count);
 				notifyRemoved(startIndex, count);
@@ -66,16 +63,24 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	@Override
 	protected void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count) {
 		dispatcher.dispatch(new IAction() {
-			@Override
-			public void execute() {
+			@Override public void execute() {
 				data.move(oldStartIndex, newStartIndex, count);
 				notifyMoved(oldStartIndex, newStartIndex, count);
 			}
 		});
 	}
+	
+	@Override
+	protected void onResetting(IReadOnlyObservableList<T> source) {
+		dispatcher.dispatch(new IAction() {
+			@Override public void execute() {
+				notifyResetting();
+			}
+		});
+	}
 
 	@Override
-	protected void onReset(IReadOnlyObservableList<T> source, Collection<T> oldItems) {
+	protected void onReset(IReadOnlyObservableList<T> source) {
 		int size = source.getSize();
 		final List<T> newItems = new ArrayList<T>(size);
 		
@@ -84,13 +89,10 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 		}
 		
 		dispatcher.dispatch(new IAction() {
-			@Override
-			public void execute() {
+			@Override public void execute() {
 				data.clear();
-				for (T item : newItems) {
-					data.add(item);
-				}
-				notifyReset(oldItems);
+				data.addAll(newItems);
+				notifyReset();
 			}
 		});
 	}

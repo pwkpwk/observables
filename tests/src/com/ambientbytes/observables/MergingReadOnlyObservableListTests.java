@@ -17,7 +17,7 @@ import org.mockito.stubbing.Answer;
 public class MergingReadOnlyObservableListTests {
 	
 	@Mock
-	IListObserver<Integer> integerObserver;
+	IListObserver observer;
 	
 	@Mock
 	ILinkedReadOnlyObservableList<Integer> integerList;
@@ -64,11 +64,11 @@ public class MergingReadOnlyObservableListTests {
 		ol.mutator().add(3);
 		ol.mutator().add(4);
 		ol.mutator().add(5);
-		mol.addObserver(integerObserver);
+		mol.addObserver(observer);
 
 		mol.add(ol.list());
 		
-		verify(integerObserver, times(1)).added(eq(0), eq(5));
+		verify(observer, times(1)).added(eq(0), eq(5));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -119,13 +119,13 @@ public class MergingReadOnlyObservableListTests {
 				}
 				return null;
 			}
-		}).when(integerObserver).removing(anyInt(), anyInt());
-		mol.addObserver(integerObserver);
+		}).when(observer).removing(anyInt(), anyInt());
+		mol.addObserver(observer);
 
 		mol.remove(ol.list());
 		
-		verify(integerObserver, times(1)).removing(eq(0), eq(ol.list().getSize()));
-		verify(integerObserver, times(1)).removed(eq(0), eq(ol.list().getSize()));
+		verify(observer, times(1)).removing(eq(0), eq(ol.list().getSize()));
+		verify(observer, times(1)).removed(eq(0), eq(ol.list().getSize()));
 	}
 
 	@Test
@@ -168,7 +168,7 @@ public class MergingReadOnlyObservableListTests {
 		ol3.mutator().add(33);
 		ol3.mutator().add(34);
 		ol3.mutator().add(35);
-		mol.addObserver(integerObserver);
+		mol.addObserver(observer);
 
 		mol.add(ol1.list());
 		mol.add(ol2.list());
@@ -185,9 +185,9 @@ public class MergingReadOnlyObservableListTests {
 		for (int i = 0; i < ol3.list().getSize(); ++i) {
 			assertSame(ol3.list().getAt(i), mol.getAt(index++));
 		}
-		verify(integerObserver, times(1)).added(eq(0), eq(5));
-		verify(integerObserver, times(1)).added(eq(5), eq(5));
-		verify(integerObserver, times(1)).added(eq(10), eq(5));
+		verify(observer, times(1)).added(eq(0), eq(5));
+		verify(observer, times(1)).added(eq(5), eq(5));
+		verify(observer, times(1)).added(eq(10), eq(5));
 	}
 
 	@Test
@@ -214,7 +214,7 @@ public class MergingReadOnlyObservableListTests {
 		mol.add(ol1.list());
 		mol.add(ol2.list());
 		mol.add(ol3.list());
-		mol.addObserver(integerObserver);
+		mol.addObserver(observer);
 
 		mol.remove(ol2.list());
 		
@@ -226,8 +226,8 @@ public class MergingReadOnlyObservableListTests {
 		for (int i = 0; i < ol3.list().getSize(); ++i) {
 			assertSame(ol3.list().getAt(i), mol.getAt(index++));
 		}
-		verify(integerObserver, times(1)).removing(eq(5), eq(5));
-		verify(integerObserver, times(1)).removed(eq(5), eq(5));
+		verify(observer, times(1)).removing(eq(5), eq(5));
+		verify(observer, times(1)).removed(eq(5), eq(5));
 	}
 
 	@Test
@@ -297,11 +297,11 @@ public class MergingReadOnlyObservableListTests {
 		mol.add(ol1.list());
 		mol.add(ol2.list());
 		mol.add(ol3.list());
-		mol.addObserver(integerObserver);
+		mol.addObserver(observer);
 
 		ol2.mutator().move(0, 2, 3);
 
-		verify(integerObserver, times(1)).moved(eq(5), eq(7), eq(3));
+		verify(observer, times(1)).moved(eq(5), eq(7), eq(3));
 	}
 
 }

@@ -1,7 +1,5 @@
 package com.ambientbytes.observables;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -89,15 +87,10 @@ final class OrderingReadOnlyObservableList<T>
 	@Override
 	public void setOrder(IItemsOrder<T> order) {
 		if (this.order != order) {
-			final int size = data.size();
-			
-			Collection<T> oldItems = new ArrayList<>(size);
-			for (int i = 0; i < size; ++i) {
-				oldItems.add(data.get(i).item());
-			}
+			notifyResetting();
 			this.order = order;
 			Collections.sort(this.data, makeComparator(order));
-			notifyReset(oldItems);
+			notifyReset();
 		}
 	}
 
@@ -135,13 +128,16 @@ final class OrderingReadOnlyObservableList<T>
 	protected void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count) {
 		// Do nothing. Moving items in the source collection does not affect their order in the ordered one.
 	}
+	
+	@Override
+	protected void onResetting(IReadOnlyObservableList<T> source) {
+		notifyResetting();
+	}
 
 	@Override
-	protected void onReset(IReadOnlyObservableList<T> source, Collection<T> items) {
-		Collection<T> oldItems = new ArrayList<>(data.size());
+	protected void onReset(IReadOnlyObservableList<T> source) {
 		for (ItemContainer c : data) {
 			c.unadvise();
-			oldItems.add(c.item());
 		}
 		data.clear();
 		
@@ -149,7 +145,7 @@ final class OrderingReadOnlyObservableList<T>
 			data.add(new ItemContainer(source.getAt(i)));
 		}
 		Collections.sort(data, makeComparator(order));
-		notifyReset(oldItems);
+		notifyReset();
 	}
 	
 	@Override

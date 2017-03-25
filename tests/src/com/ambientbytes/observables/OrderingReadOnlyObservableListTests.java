@@ -1,13 +1,7 @@
 package com.ambientbytes.observables;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -82,17 +76,9 @@ public class OrderingReadOnlyObservableListTests {
 		}
 	}
 
-	@Captor
-	ArgumentCaptor<Collection<Integer>> integerCollectionCaptor;
-	
-	@Captor
-	ArgumentCaptor<Collection<TestItem>> testCollectionCaptor;
-	
-	@Mock
-	IListObserver<Integer> integerObserver;
-	
-	@Mock
-	IListObserver<TestItem> testObserver;
+	@Captor ArgumentCaptor<Collection<Integer>> integerCollectionCaptor;
+	@Captor ArgumentCaptor<Collection<TestItem>> testCollectionCaptor;
+	@Mock IListObserver observer;
 
 	@Before
 	public void setUp() throws Exception {
@@ -144,10 +130,10 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(3);
 		ol.mutator().add(1);
 		ol.mutator().add(2);
-		ool.addObserver(integerObserver);
+		ool.addObserver(observer);
 		ol.mutator().add(4);
 
-		verify(integerObserver, times(1)).added(eq(3), eq(1));
+		verify(observer, times(1)).added(eq(3), eq(1));
 	}
 
 	@Test
@@ -176,18 +162,18 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
-		ool.addObserver(integerObserver);
+		ool.addObserver(observer);
 		
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
 				assertSame(ol.list().getAt(1), ool.getAt(2));
 				return null;
 			}
-		}).when(integerObserver).removing(eq(2), eq(1));
+		}).when(observer).removing(eq(2), eq(1));
 		ol.mutator().remove(1, 1);
 		
-		verify(integerObserver, times(1)).removing(eq(2), eq(1));
-		verify(integerObserver, times(1)).removed(eq(2), eq(1));
+		verify(observer, times(1)).removing(eq(2), eq(1));
+		verify(observer, times(1)).removed(eq(2), eq(1));
 	}
 
 	@Test
@@ -199,7 +185,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
-		ool.addObserver(integerObserver);
+		ool.addObserver(observer);
 		ol.mutator().remove(0, 1);
 	
 		assertEquals(4, ool.getSize());
@@ -207,8 +193,8 @@ public class OrderingReadOnlyObservableListTests {
 		assertEquals(2, ool.getAt(1).intValue());
 		assertEquals(3, ool.getAt(2).intValue());
 		assertEquals(4, ool.getAt(3).intValue());
-		verify(integerObserver, times(1)).removing(eq(4), eq(1));
-		verify(integerObserver, times(1)).removed(eq(4), eq(1));
+		verify(observer, times(1)).removing(eq(4), eq(1));
+		verify(observer, times(1)).removed(eq(4), eq(1));
 	}
 
 	@Test
@@ -256,17 +242,12 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
-		ool.addObserver(integerObserver);
+		ool.addObserver(observer);
 
 		ool.setOrder(new IntegerReverseOrder());
 
-		verify(integerObserver, times(1)).reset(integerCollectionCaptor.capture());
-		int[] expected = { 1, 2, 3, 4, 5 };
-		int i = 0;
-		assertEquals(expected.length, integerCollectionCaptor.getValue().size());
-		for (Integer value : integerCollectionCaptor.getValue()) {
-			assertEquals(expected[i++], value.intValue());
-		}
+		verify(observer, times(1)).resetting();
+		verify(observer, times(1)).reset();
 	}
 	
 	@Test
@@ -312,27 +293,13 @@ public class OrderingReadOnlyObservableListTests {
 				assertTrue(found);
 				return null;
 			}
-		}).when(integerObserver).removing(anyInt(), anyInt());
-		doAnswer(new Answer<Void>() {
-			public Void answer(InvocationOnMock invocation) {
-				boolean found = false;
-				
-				assertEquals(ol.list().getSize(), ool.getSize());
-				for (int i = 0; i < ool.getSize(); ++i) {
-					if (item == ool.getAt(i)) {
-						found = true;
-					}
-				}
-				assertFalse(found);
-				return null;
-			}
-		}).when(integerObserver).removed(anyInt(), anyInt());
-		ool.addObserver(testObserver);
+		}).when(observer).removing(anyInt(), anyInt());
+		ool.addObserver(observer);
 
 		ol.mutator().remove(4, 1);
 
-		verify(testObserver, times(1)).removing(anyInt(), eq(1));
-		verify(testObserver, times(1)).removed(anyInt(), eq(1));
+		verify(observer, times(1)).removing(anyInt(), eq(1));
+		verify(observer, times(1)).removed(anyInt(), eq(1));
 	}
 	
 	@Test
@@ -380,11 +347,11 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(item = new TestItem(3));
 		ol.mutator().add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
-		ool.addObserver(testObserver);
+		ool.addObserver(observer);
 		
 		item.setValue(9);
 
-		verify(testObserver, times(1)).moved(2, 3, 1);
+		verify(observer, times(1)).moved(2, 3, 1);
 	}
 	
 	@Test
@@ -421,15 +388,16 @@ public class OrderingReadOnlyObservableListTests {
 			ol.mutator().add(item);
 		}
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
-		ool.addObserver(testObserver);
+		ool.addObserver(observer);
 
 		ol.mutator().move(0, 2, 2);
 
-		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
-		verify(testObserver, never()).added(anyInt(), anyInt());
-		verify(testObserver, never()).removing(anyInt(), anyInt());
-		verify(testObserver, never()).removed(anyInt(), anyInt());
-		verify(testObserver, never()).reset(any());
+		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
+		verify(observer, never()).added(anyInt(), anyInt());
+		verify(observer, never()).removing(anyInt(), anyInt());
+		verify(observer, never()).removed(anyInt(), anyInt());
+		verify(observer, never()).resetting();
+		verify(observer, never()).reset();
 	}
 	
 	@Test
@@ -440,18 +408,19 @@ public class OrderingReadOnlyObservableListTests {
 			ol.mutator().add(item);
 		}
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
-		ool.addObserver(testObserver);
+		ool.addObserver(observer);
 		ool.unlink();
 
 		ol.mutator().move(0, 2, 2);
 		ol.mutator().add(new TestItem(100));
 		ol.mutator().remove(0, 3);
 
-		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
-		verify(testObserver, never()).added(anyInt(), anyInt());
-		verify(testObserver, never()).removing(anyInt(), anyInt());
-		verify(testObserver, never()).removed(anyInt(), anyInt());
-		verify(testObserver, never()).reset(any());
+		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
+		verify(observer, never()).added(anyInt(), anyInt());
+		verify(observer, never()).removing(anyInt(), anyInt());
+		verify(observer, never()).removed(anyInt(), anyInt());
+		verify(observer, never()).resetting();
+		verify(observer, never()).reset();
 		for (int i = 0; i < originalItems.length; ++i) {
 			assertSame(originalItems[i], ool.getAt(i));
 			assertEquals(0, ool.getAt(i).getObserversNumber());

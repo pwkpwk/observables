@@ -6,8 +6,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -19,8 +17,7 @@ import org.mockito.MockitoAnnotations;
 
 public class ListObserversCollectionTests {
 	
-	@Mock
-	IListObserver<Object> observer;
+	@Mock IListObserver observer;
 
 	@Before
 	public void setUp() throws Exception {
@@ -79,14 +76,23 @@ public class ListObserversCollectionTests {
 	}
 
 	@Test
-	public void reportResetReported() {
+	public void reportResettingReported() {
 		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
-		Collection<Object> values = new ArrayList<Object>();
 		
 		collection.add(observer);
-		collection.reset(values);
+		collection.resetting();
 		
-		verify(observer, times(1)).reset(values);
+		verify(observer, times(1)).resetting();
+	}
+
+	@Test
+	public void reportResetReported() {
+		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		
+		collection.add(observer);
+		collection.reset();
+		
+		verify(observer, times(1)).reset();
 	}
 
 	@Test

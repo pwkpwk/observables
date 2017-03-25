@@ -1,7 +1,6 @@
 package com.ambientbytes.observables;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,7 +12,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 	private final List<ListInfo> lists;
 	private final ArrayListEx<T> data;
 	
-	private final class ListInfo implements IListObserver<T> {
+	private final class ListInfo implements IListObserver {
 		private final IReadOnlyObservableList<T> list;
 		private int index;		// index of the list in the "lists" collection
 		private int offset;	// index of the first element of the list in the "data" collection
@@ -99,7 +98,20 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 
 		@Override
-		public void reset(Collection<T> oldItems) {
+		public void resetting() {
+			Lock l = lock.writeLock();
+
+			l.lock();
+			
+			try {
+				
+			} finally {
+				l.unlock();
+			}
+		}
+
+		@Override
+		public void reset() {
 			Lock l = lock.writeLock();
 
 			l.lock();
@@ -182,12 +194,12 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 	}
 
 	@Override
-	public void addObserver(IListObserver<T> observer) {
+	public void addObserver(IListObserver observer) {
 		observers.add(observer);
 	}
 
 	@Override
-	public void removeObserver(IListObserver<T> observer) {
+	public void removeObserver(IListObserver observer) {
 		observers.remove(observer);
 	}
 
