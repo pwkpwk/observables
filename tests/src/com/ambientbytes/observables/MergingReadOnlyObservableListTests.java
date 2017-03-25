@@ -230,4 +230,78 @@ public class MergingReadOnlyObservableListTests {
 		verify(integerObserver, times(1)).removed(eq(5), eq(5));
 	}
 
+	@Test
+	public void moveMiddleMovesData() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+
+		ol2.mutator().move(0, 2, 3);
+		
+		assertEquals(24, mol.getAt(5).intValue());
+		assertEquals(25, mol.getAt(6).intValue());
+		assertEquals(21, mol.getAt(7).intValue());
+		assertEquals(22, mol.getAt(8).intValue());
+		assertEquals(23, mol.getAt(9).intValue());
+
+		int index = 0;
+		for (int i = 0; i < ol1.list().getSize(); ++i) {
+			assertSame(ol1.list().getAt(i), mol.getAt(index++));
+		}
+		index += 5;
+		for (int i = 0; i < ol3.list().getSize(); ++i) {
+			assertSame(ol3.list().getAt(i), mol.getAt(index++));
+		}
+	}
+
+	@Test
+	public void moveMiddleMoveReported() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+		mol.addObserver(integerObserver);
+
+		ol2.mutator().move(0, 2, 3);
+
+		verify(integerObserver, times(1)).moved(eq(5), eq(7), eq(3));
+	}
+
 }

@@ -92,7 +92,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			l.lock();
 			
 			try {
-				
+				onMovedUnsafe(oldStartIndex, newStartIndex, count);
 			} finally {
 				l.unlock();
 			}
@@ -136,6 +136,11 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 				lists.get(listIndex).shiftBack(0, count);
 			}
 			observers.removed(offset + startIndex, count);
+		}
+		
+		private void onMovedUnsafe(int oldStartIndex, int newStartIndex, int count) {
+			data.move(offset + oldStartIndex, offset + newStartIndex, count);
+			observers.moved(offset + oldStartIndex, offset + newStartIndex, count);
 		}
 	}
 	
