@@ -1,8 +1,9 @@
 package com.ambientbytes.observables;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -18,6 +19,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class OrderingReadOnlyObservableListTests {
 	
@@ -174,11 +177,17 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
 		ool.addObserver(integerObserver);
+		
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				assertSame(ol.list().getAt(1), ool.getAt(2));
+				return null;
+			}
+		}).when(integerObserver).removing(eq(2), eq(1));
 		ol.mutator().remove(1, 1);
 		
-		verify(integerObserver, times(1)).removed(eq(2), integerCollectionCaptor.capture());
-		assertEquals(Integer.valueOf(3), integerCollectionCaptor.getValue().toArray()[0]);
-		assertEquals(1, integerCollectionCaptor.getValue().size());
+		verify(integerObserver, times(1)).removing(eq(2), eq(1));
+		verify(integerObserver, times(1)).removed(eq(2), eq(1));
 	}
 
 	@Test
@@ -192,18 +201,14 @@ public class OrderingReadOnlyObservableListTests {
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
 		ool.addObserver(integerObserver);
 		ol.mutator().remove(0, 1);
-		
+	
+		assertEquals(4, ool.getSize());
 		assertEquals(1, ool.getAt(0).intValue());
 		assertEquals(2, ool.getAt(1).intValue());
 		assertEquals(3, ool.getAt(2).intValue());
 		assertEquals(4, ool.getAt(3).intValue());
-		verify(integerObserver, times(1)).removed(eq(4), integerCollectionCaptor.capture());
-		int[] expected = { 5 };
-		int i = 0;
-		assertEquals(expected.length, integerCollectionCaptor.getValue().size());
-		for (Integer value : integerCollectionCaptor.getValue()) {
-			assertEquals(expected[i++], value.intValue());
-		}
+		verify(integerObserver, times(1)).removing(eq(4), eq(1));
+		verify(integerObserver, times(1)).removed(eq(4), eq(1));
 	}
 
 	@Test
@@ -284,24 +289,50 @@ public class OrderingReadOnlyObservableListTests {
 	@Test
 	public void removeOneOfDuplicatesRemoves() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
-		TestItem item;
+		final TestItem item = new TestItem(2);
 		ol.mutator().add(new TestItem(1));
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(2));
+		ol.mutator().add(item);
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(new TestItem(4));
 		ol.mutator().add(new TestItem(5));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				boolean found = false;
+				
+				assertEquals(ol.list().getSize(), ool.getSize());
+				for (int i = 0; i < ool.getSize(); ++i) {
+					if (item == ool.getAt(i)) {
+						found = true;
+					}
+				}
+				assertTrue(found);
+				return null;
+			}
+		}).when(integerObserver).removing(anyInt(), anyInt());
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				boolean found = false;
+				
+				assertEquals(ol.list().getSize(), ool.getSize());
+				for (int i = 0; i < ool.getSize(); ++i) {
+					if (item == ool.getAt(i)) {
+						found = true;
+					}
+				}
+				assertFalse(found);
+				return null;
+			}
+		}).when(integerObserver).removed(anyInt(), anyInt());
 		ool.addObserver(testObserver);
 
 		ol.mutator().remove(4, 1);
 
-		verify(testObserver, times(1)).removed(anyInt(), testCollectionCaptor.capture());
-		TestItem[] items = testCollectionCaptor.getValue().toArray(new TestItem[testCollectionCaptor.getValue().size()]);
-		assertEquals(1, items.length);
-		assertSame(item, items[0]);
+		verify(testObserver, times(1)).removing(anyInt(), eq(1));
+		verify(testObserver, times(1)).removed(anyInt(), eq(1));
 	}
 	
 	@Test
@@ -380,7 +411,8 @@ public class OrderingReadOnlyObservableListTests {
 
 		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
 		verify(testObserver, never()).added(anyInt(), anyInt());
-		verify(testObserver, never()).removed(anyInt(), any());
+		verify(testObserver, never()).removing(anyInt(), anyInt());
+		verify(testObserver, never()).removed(anyInt(), anyInt());
 		verify(testObserver, never()).reset(any());
 	}
 	
@@ -401,7 +433,8 @@ public class OrderingReadOnlyObservableListTests {
 
 		verify(testObserver, never()).moved(anyInt(), anyInt(), anyInt());
 		verify(testObserver, never()).added(anyInt(), anyInt());
-		verify(testObserver, never()).removed(anyInt(), any());
+		verify(testObserver, never()).removing(anyInt(), anyInt());
+		verify(testObserver, never()).removed(anyInt(), anyInt());
 		verify(testObserver, never()).reset(any());
 		for (int i = 0; i < originalItems.length; ++i) {
 			assertSame(originalItems[i], ool.getAt(i));
