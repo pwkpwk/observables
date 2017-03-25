@@ -83,12 +83,8 @@ public class MappingReadOnlyObservableListTests {
 		for (String s : new String[] { "item:3" }) {
 			assertEquals(s, mol.getAt(index++));
 		}
-		verify(stringObserver, times(1)).removed(eq(0), stringsCaptor.capture());
-		index = 0;
-		String[] values = { "item:1", "item:2" };
-		for (String s : stringsCaptor.getValue()) {
-			assertEquals(values[index++], s);
-		}
+		verify(stringObserver, times(1)).removing(eq(0), eq(2));
+		verify(stringObserver, times(1)).removed(eq(0), eq(2));
 	}
 
 	@Test
@@ -241,7 +237,8 @@ public class MappingReadOnlyObservableListTests {
 		assertEquals(0, mol.getSize());
 		verify(stringObserver, never()).moved(anyInt(), anyInt(), anyInt());
 		verify(stringObserver, never()).added(anyInt(), anyInt());
-		verify(stringObserver, never()).removed(anyInt(), any());
+		verify(stringObserver, never()).removing(anyInt(), anyInt());
+		verify(stringObserver, never()).removed(anyInt(), anyInt());
 	}
 
 }
