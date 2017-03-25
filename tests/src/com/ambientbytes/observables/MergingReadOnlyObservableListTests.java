@@ -11,6 +11,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class MergingReadOnlyObservableListTests {
 	
@@ -109,17 +111,23 @@ public class MergingReadOnlyObservableListTests {
 		ol.mutator().add(4);
 		ol.mutator().add(5);
 		mol.add(ol.list());
+		doAnswer(new Answer<Void>() {
+			public Void answer(InvocationOnMock invocation) {
+				assertEquals(ol.list().getSize(), mol.getSize());
+				for (int i = 0; i < mol.getSize(); ++i) {
+					assertSame(ol.list().getAt(i), mol.getAt(i));
+				}
+				return null;
+			}
+		}).when(integerObserver).removing(anyInt(), anyInt());
 		mol.addObserver(integerObserver);
 
 		mol.remove(ol.list());
 		
-		verify(integerObserver, times(1)).removed(eq(0), integerCaptor.capture());
-		int index = 0;
-		for (Integer i : integerCaptor.getValue()) {
-			assertSame(ol.list().getAt(index++), i);
-		}
+		verify(integerObserver, times(1)).removing(eq(0), eq(ol.list().getSize()));
+		verify(integerObserver, times(1)).removed(eq(0), eq(ol.list().getSize()));
 	}
-	
+
 	@Test
 	public void addListAddsObserver() {
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
@@ -218,11 +226,8 @@ public class MergingReadOnlyObservableListTests {
 		for (int i = 0; i < ol3.list().getSize(); ++i) {
 			assertSame(ol3.list().getAt(i), mol.getAt(index++));
 		}
-		verify(integerObserver, times(1)).removed(eq(5), integerCaptor.capture());
-		int itemIndex = 0;
-		for (Integer i : integerCaptor.getValue()) {
-			assertSame(ol2.list().getAt(itemIndex++), i);
-		}
+		verify(integerObserver, times(1)).removing(eq(5), eq(5));
+		verify(integerObserver, times(1)).removed(eq(5), eq(5));
 	}
 
 }
