@@ -49,14 +49,23 @@ public class ListObserversCollectionTests {
 	}
 
 	@Test
-	public void reportRemovedReported() {
+	public void reportRemovingReported() {
 		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
-		Collection<Object> values = new ArrayList<Object>();
 		
 		collection.add(observer);
-		collection.removed(0, values);
+		collection.removing(0, 1);
 		
-		verify(observer, times(1)).removed(0, values);
+		verify(observer, times(1)).removing(0, 1);
+	}
+
+	@Test
+	public void reportRemovedReported() {
+		ListObserversCollection<Object> collection = new ListObserversCollection<>(new DummyReadWriteLock());
+		
+		collection.add(observer);
+		collection.removed(0, 1);
+		
+		verify(observer, times(1)).removed(0, 1);
 	}
 
 	@Test
