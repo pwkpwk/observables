@@ -109,14 +109,12 @@ public class DispatchingObservableListTest {
 		mol.mutator().remove(1, 5);
 
 		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
-		
-		verify(observer, times(1)).removed(eq(1), collectionCaptor.capture());
-		int value = 1;
-		for (Integer item : collectionCaptor.getValue()) {
-			assertEquals(value++, item.intValue());
+		for (IAction action : actionCaptor.getAllValues()) {
+			action.execute();
 		}
+		
+		verify(observer, times(1)).removing(eq(1), eq(5));
+		verify(observer, times(1)).removed(eq(1), eq(5));
 	}
 	
 	@Test
