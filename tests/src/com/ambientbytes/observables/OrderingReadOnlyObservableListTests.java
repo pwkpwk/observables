@@ -372,6 +372,22 @@ public class OrderingReadOnlyObservableListTests {
 	}
 	
 	@Test
+	public void mutateItemMoveReported() {
+		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		TestItem item;
+		ol.mutator().add(new TestItem(1));
+		ol.mutator().add(new TestItem(2));
+		ol.mutator().add(item = new TestItem(3));
+		ol.mutator().add(new TestItem(4));
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		ool.addObserver(testObserver);
+		
+		item.setValue(9);
+
+		verify(testObserver, times(1)).moved(2, 3, 1);
+	}
+	
+	@Test
 	public void resetSourceItemsReplaced() {
 		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
 		final TestItem[] newItems = new TestItem[] { new TestItem(6), new TestItem(7), new TestItem(8), new TestItem(9) };

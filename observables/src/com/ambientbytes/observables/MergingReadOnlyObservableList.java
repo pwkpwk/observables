@@ -132,6 +132,9 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		private void onRemovedUnsafe(int startIndex, int count) {
 			observers.removing(offset + startIndex, count);
 			data.remove(offset + startIndex, count);
+			for (int listIndex = index + 1; listIndex < lists.size(); ++listIndex) {
+				lists.get(listIndex).shiftBack(0, count);
+			}
 			observers.removed(offset + startIndex, count);
 		}
 	}

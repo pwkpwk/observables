@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 
 /**
  * Implementation of IReadOnlyObservableList that orders items of another observable list
@@ -17,7 +16,7 @@ final class OrderingReadOnlyObservableList<T>
 				extends LinkedReadOnlyObservableList<T>
 				implements IItemsOrderContainer<T> {
 
-	private final List<ItemContainer> data;
+	private final ArrayListEx<ItemContainer> data;
 	private IItemsOrder<T> order;
 	
 	private final class ItemContainer implements IObjectMutationObserver {
@@ -61,7 +60,7 @@ final class OrderingReadOnlyObservableList<T>
 			IReadOnlyObservableList<T> source,
 			IItemsOrder<T> order) {
 		super(source);
-		this.data = new ArrayList<>(source.getSize());
+		this.data = new ArrayListEx<>(source.getSize());
 		this.order = order;
 		
 		final int size = source.getSize();
@@ -163,16 +162,12 @@ final class OrderingReadOnlyObservableList<T>
 	private void onItemMutated(T item) {
 		// TODO: needs optimization - indexOfFirstGreaterOrEqualItem should ignore the mutated item
 		final int oldIndex = indexOfMutatedItem(item);
-		ItemContainer container = data.get(oldIndex);
-		data.remove(oldIndex);
-		final int newIndex = indexOfFirstGreaterOrEqualItem(item);
+		IRandomAccess<ItemContainer> pokedAccess = new PokedListRandomAccess<>(data, oldIndex);
+		final int newIndex = indexOfFirstGreaterOrEqualItem(pokedAccess, item);
 		
-		if (newIndex != oldIndex) {
-			data.add(newIndex, container);
+		if (oldIndex != newIndex) {
+			data.move(oldIndex, newIndex, 1);
 			notifyMoved(oldIndex, newIndex, 1);
-		} else {
-			// Simply add the item back where it was.
-			data.add(newIndex, container);
 		}
 	}
 	
@@ -194,7 +189,8 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private int indexOfItem(T item) {
-		int index = indexOfFirstGreaterOrEqualItem(item);
+		IRandomAccess<ItemContainer> access = new ListRandomAccess<>(data);
+		int index = indexOfFirstGreaterOrEqualItem(access, item);
 		
 		while (index < data.size() && !order.isLess(data.get(index).item(), item)) {
 			if (data.get(index).item() == item) {
@@ -229,19 +225,19 @@ final class OrderingReadOnlyObservableList<T>
 		return index;
 	}
 	
-	private int indexOfFirstGreaterOrEqualItem(T item) {
+	private int indexOfFirstGreaterOrEqualItem(IRandomAccess<ItemContainer> dataAccess, T item) {
 		//
 		// Return index of the first item that is greater or equal than the specified item
 		// according to the set order.
 		// A new item may be inserted at the returned index.
 		//
 		int left = -1;
-		int right = data.size();
+		int right = dataAccess.size();
 		
 		while (left + 1 != right) {
 			int middle = left + (right - left) / 2;
 			
-			if (order.isLess(data.get(middle).item(), item)) {
+			if (order.isLess(dataAccess.get(middle).item(), item)) {
 				left = middle;
 			} else {
 				right = middle;
@@ -252,7 +248,8 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private void insertAndNotify(T item) {
-		int insertionIndex = indexOfFirstGreaterOrEqualItem(item);
+		IRandomAccess<ItemContainer> access = new ListRandomAccess<>(data);
+		int insertionIndex = indexOfFirstGreaterOrEqualItem(access, item);
 		data.add(insertionIndex, new ItemContainer(item));
 		notifyAdded(insertionIndex, 1);
 	}
