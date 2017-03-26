@@ -156,8 +156,11 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private void onItemMutated(T item) {
-		// TODO: needs optimization - indexOfFirstGreaterOrEqualItem should ignore the mutated item
 		final int oldIndex = indexOfMutatedItem(item);
+		//
+		// Exclude the mutated item and binary search the new position for the item.
+		// If the position has changed, move the item.
+		//
 		IRandomAccess<ItemContainer> pokedAccess = new PokedListRandomAccess<>(data, oldIndex);
 		final int newIndex = indexOfFirstGreaterOrEqualItem(pokedAccess, item);
 		
