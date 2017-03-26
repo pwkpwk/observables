@@ -27,13 +27,26 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 
 		@Override
-		public final void insert(int index, T value) {
+		public final void add(int index, T value) {
 			final Lock l = lock.writeLock();
 			
 			l.lock();
 			
 			try {
 				insertUnsafe(index, value);
+			} finally {
+				l.unlock();
+			}
+		}
+		
+		@Override
+		public final void add(int index, Collection<T> values) {
+			final Lock l = lock.writeLock();
+			
+			l.lock();
+			
+			try {
+				insertUnsafe(index, values);
 			} finally {
 				l.unlock();
 			}
@@ -117,6 +130,13 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		private void insertUnsafe(int index, T value) {
 			data.add(index, value);
 			observers.added(index, 1);
+		}
+
+		private void insertUnsafe(int index, Collection<T> values) {
+			if (values.size() != 0) {
+				data.addAll(index, values);
+				observers.added(index, values.size());
+			}
 		}
 
 		private void clearUnsafe() {

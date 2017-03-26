@@ -17,13 +17,20 @@ public interface IListMutator<T> {
 	void add(T value);
 	
 	/**
-	 * Insert a new item at the specified location and push items from the location upwards.
+	 * Insert a new item at the specified location and push existing items from that location upwards.
 	 * @param index index where the new item will appear. To add an item at the end of the list,
 	 * specify the size of the list, or call add() instead. If the index is negative or beyoud the
 	 * size of the list, the list throws an exception.
 	 * @param value item to be added to the list.
 	 */
-	void insert(int index, T value);
+	void add(int index, T value);
+
+	/**
+	 * Insert a collection of new items at the specified location and push existing items from that location upwards.
+	 * @param index index where the first inserted item will appear, followed by the rest of the new items.
+	 * @param values iterable collection of items to be added to the list.
+	 */
+	void add(int index, Collection<T> values);
 	
 	/**
 	 * Remove a range of items from the list.
