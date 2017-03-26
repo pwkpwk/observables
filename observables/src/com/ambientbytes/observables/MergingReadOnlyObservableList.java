@@ -25,9 +25,17 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 	}
 	
+	/**
+	 * Wrapper and observer of dependency observable lists.
+	 * Each list added to MergingReadOnlyObservableList is represented by a ListInfo object
+	 * that listens to the added list's events and updates the merged collection in MergingReadOnlyObservableList.
+	 * List info stores its index in the list of dependency lists maintained by MergingReadOnlyObservableList
+	 * and the offset of its first element in the master list (MergingReadOnlyObservableList.data)
+	 *
+	 */
 	private final class ListInfo implements IListObserver {
 		private final IReadOnlyObservableList<T> list;
-		private int index;		// index of the list in the "lists" collection
+		private int index;	// index of the list in the "lists" collection
 		private int offset;	// index of the first element of the list in the "data" collection
 		private ListChange pendingChange;
 		

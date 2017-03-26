@@ -579,5 +579,199 @@ public class MergingReadOnlyObservableListTests {
 		verify(integerList2, times(1)).removeObserver(any());
 		verify(integerList3, times(1)).removeObserver(any());
 	}
+	
+	@Test
+	public void addToFirstAdded() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+
+		ol1.mutator().add(16);
+
+		assertEquals(16, mol.getAt(5).intValue());
+		assertEquals(21, mol.getAt(6).intValue());
+		assertEquals(16, mol.getSize());
+	}
+	
+	@Test
+	public void addToFirstReports() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+		mol.addObserver(observer);
+
+		ol1.mutator().add(16);
+
+		verify(observer, times(1)).added(5, 1);
+	}
+	
+	@Test
+	public void addToMiddleAdded() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+
+		ol2.mutator().add(26);
+
+		assertEquals(26, mol.getAt(10).intValue());
+		assertEquals(31, mol.getAt(11).intValue());
+		assertEquals(16, mol.getSize());
+	}
+	
+	@Test
+	public void addToMiddleReports() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+		mol.addObserver(observer);
+
+		ol2.mutator().add(16);
+
+		verify(observer, times(1)).added(10, 1);
+	}
+	
+	@Test
+	public void addRemoveMiddleOriginalData() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+
+		ol2.mutator().add(26);
+		ol2.mutator().remove(5, 1);
+
+		assertEquals(25, mol.getAt(9).intValue());
+		assertEquals(31, mol.getAt(10).intValue());
+		assertEquals(15, mol.getSize());
+	}
+	
+	@Test
+	public void removeMiddleReported() {
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
+		ol1.mutator().add(11);
+		ol1.mutator().add(12);
+		ol1.mutator().add(13);
+		ol1.mutator().add(14);
+		ol1.mutator().add(15);
+		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
+		ol2.mutator().add(21);
+		ol2.mutator().add(22);
+		ol2.mutator().add(23);
+		ol2.mutator().add(24);
+		ol2.mutator().add(25);
+		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
+		ol3.mutator().add(31);
+		ol3.mutator().add(32);
+		ol3.mutator().add(33);
+		ol3.mutator().add(34);
+		ol3.mutator().add(35);
+		mol.add(ol1.list());
+		mol.add(ol2.list());
+		mol.add(ol3.list());
+		mol.addObserver(observer);
+
+		ol2.mutator().remove(0, 1);
+
+		assertEquals(22, mol.getAt(5).intValue());
+		assertEquals(31, mol.getAt(9).intValue());
+		assertEquals(14, mol.getSize());
+		verify(observer, times(1)).removing(5, 1);
+		verify(observer, times(1)).removed(5, 1);
+	}
 
 }
