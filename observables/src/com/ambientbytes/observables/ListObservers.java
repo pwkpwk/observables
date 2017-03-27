@@ -3,7 +3,6 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 final class ListObservers<T> implements IListObserver {
@@ -17,28 +16,24 @@ final class ListObservers<T> implements IListObserver {
 	}
 	
 	public void add(IListObserver observer) {
-		final Lock l = lock.writeLock();
-		
-		l.lock();
+		final IResource l = LockTool.acquireWriteLock(lock);
 		
 		try {
 			if (!observers.add(observer)) {
 				throw new IllegalStateException("Duplicate list observer");
 			}
 		} finally {
-			l.unlock();
+			l.release();
 		}
 	}
 	
 	public void remove(IListObserver observer) {
-		final Lock l = lock.writeLock();
-		
-		l.lock();
+		final IResource l = LockTool.acquireWriteLock(lock);
 		
 		try {
 			observers.remove(observer);
 		} finally {
-			l.unlock();
+			l.release();
 		}
 	}
 
@@ -100,14 +95,12 @@ final class ListObservers<T> implements IListObserver {
 	
 	private Iterable<IListObserver> makeInvocationList() {
 		Iterable<IListObserver> iterable;
-		final Lock l = lock.readLock();
-		
-		l.lock();
+		final IResource l = LockTool.acquireReadLock(lock);
 		
 		try {
 			iterable = new ArrayList<IListObserver>(observers);
 		} finally {
-			l.unlock();
+			l.release();
 		}
 		
 		return iterable;

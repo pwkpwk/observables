@@ -1,15 +1,12 @@
 package com.ambientbytes.observables;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -21,46 +18,62 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class DispatchingObservableListTest {
+	
+	private static final class TestDispatcher implements IDispatcher {
+		
+		private final Collection<IAction> actions = new ArrayList<>();
 
-	@Mock
-	IListObserver observer;
-	
-	@Captor
-	ArgumentCaptor<IAction> actionCaptor;
-	
-	@Captor
-	ArgumentCaptor<Collection<Integer>> collectionCaptor;
+		@Override
+		public void dispatch(IAction action) {
+			actions.add(action);
+		}
+
+		public int executeAll() {
+			int count = actions.size();
+			
+			for (IAction action : actions) {
+				action.execute();
+			}
+			actions.clear();
+			
+			return count;
+		}
+	}
+
+	@Mock IListObserver observer;	
+	@Captor ArgumentCaptor<IAction> actionCaptor;
+	@Captor ArgumentCaptor<Collection<Integer>> collectionCaptor;
+	private ReadWriteLock lock;
+	private TestDispatcher testDispatcher;
 	
 	@Before
 	public void setUp() {
 		MockitoAnnotations.initMocks(this);
+		lock = new DummyReadWriteLock();
+		testDispatcher = new TestDispatcher();
 	}
 
 	@Test
 	public void newDispatchingObservableListCopiesData() {
-		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
 		mol.mutator().add(Integer.valueOf(10));
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
 
+		assertEquals(1, testDispatcher.executeAll());
 		assertEquals(1, dol.getSize());
 		assertEquals(10, dol.getAt(0).intValue());
 	}
 	
 	@Test
 	public void addToSourceDispatchesUpdate() {
-		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		assertEquals(0, testDispatcher.executeAll());
 		
 		mol.mutator().add(Integer.valueOf(10));
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		assertEquals(1, actions.size());
-		assertNotNull(actions.get(0));
 		assertEquals(0, dol.getSize());
-		actions.get(0).execute();
+		assertEquals(1, testDispatcher.executeAll());
 		assertListsEqual(mol.list(), dol);
 	}
 	
@@ -68,35 +81,32 @@ public class DispatchingObservableListTest {
 	public void addToSourceNotifies() {
 		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().add(Integer.valueOf(10));
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
+		for (IAction action : actionCaptor.getAllValues()) {
+			action.execute();
+		}
 		
 		verify(observer).added(eq(0), eq(1));
 	}
 	
 	@Test
 	public void removeFromSourceDispatchesRemoval() {
-		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		assertEquals(1, testDispatcher.executeAll());
 		
 		mol.mutator().remove(1, 5);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		assertEquals(1, actions.size());
-		assertNotNull(actions.get(0));
 		assertEquals(10, dol.getSize());
-		actions.get(0).execute();
+		assertEquals(1, testDispatcher.executeAll());
 		assertListsEqual(mol.list(), dol);
 	}
 	
@@ -107,12 +117,12 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().remove(1, 5);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
 		for (IAction action : actionCaptor.getAllValues()) {
 			action.execute();
 		}
@@ -128,14 +138,15 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(1, 5, 3);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
+		for (IAction action : actionCaptor.getAllValues()) {
+			action.execute();
+		}
 		
 		verify(observer, times(1)).moved(eq(1), eq(5), eq(3));
 		assertListsEqual(mol.list(), dol);
@@ -148,16 +159,17 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(1, 3, 5);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
+		for (IAction action : actionCaptor.getAllValues()) {
+			action.execute();
+		}
 		
-		verify(observer, times(1)).moved(eq(1), eq(3), eq(5));
+		verify(observer, atLeast(1)).moved(eq(1), eq(3), eq(5));
 		assertListsEqual(mol.list(), dol);
 	}
 	
@@ -168,14 +180,15 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(6, 0, 3);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
+		for (IAction action :  actionCaptor.getAllValues()) {
+			action.execute();
+		}
 		
 		verify(observer, times(1)).moved(eq(6), eq(0), eq(3));
 		assertListsEqual(mol.list(), dol);
@@ -188,14 +201,15 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(2, 0, 3);
 
-		verify(dispatcher, times(1)).dispatch(actionCaptor.capture());
-		List<IAction> actions = actionCaptor.getAllValues();
-		actions.get(0).execute();
+		verify(dispatcher, atLeast(1)).dispatch(actionCaptor.capture());
+		for (IAction action : actionCaptor.getAllValues()) {
+			action.execute();
+		}
 		
 		verify(observer, times(1)).moved(eq(2), eq(0), eq(3));
 		assertListsEqual(mol.list(), dol);
@@ -211,12 +225,12 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
 		dol.addObserver(observer);
 		
 		mol.mutator().reset(newValues);
 
-		verify(dispatcher, times(2)).dispatch(actionCaptor.capture());
+		verify(dispatcher, atLeast(2)).dispatch(actionCaptor.capture());
 		for (IAction action : actionCaptor.getAllValues()) {
 			action.execute();
 		}
@@ -228,7 +242,6 @@ public class DispatchingObservableListTest {
 	
 	@Test
 	public void resettingPreservesOriginalData() {
-		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
@@ -236,8 +249,9 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
 		dol.addObserver(observer);
+		assertEquals(1, testDispatcher.executeAll());
 		final List<Integer> capturedValues = new ArrayList<>();
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
@@ -249,11 +263,7 @@ public class DispatchingObservableListTest {
 		}).when(observer).resetting();
 		
 		mol.mutator().reset(newValues);
-
-		verify(dispatcher, times(2)).dispatch(actionCaptor.capture());
-		for (IAction action : actionCaptor.getAllValues()) {
-			action.execute();
-		}
+		assertEquals(2, testDispatcher.executeAll());
 
 		assertEquals(10, capturedValues.size());
 		for (int i = 0; i < 10; ++i) {

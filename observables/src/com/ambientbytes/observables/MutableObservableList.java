@@ -1,7 +1,6 @@
 package com.ambientbytes.observables;
 
 import java.util.Collection;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 class MutableObservableList<T> implements IReadOnlyObservableList<T> {
@@ -15,78 +14,68 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void add(T value) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				insertUnsafe(data.size(), value);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 
 		@Override
 		public final void add(int index, T value) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				insertUnsafe(index, value);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 		
 		@Override
 		public final void add(int index, Collection<T> values) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				insertUnsafe(index, values);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 		
 		@Override
 		public final void set(int index, T value) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
+				// TODO: implement setting a single item
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 		
 		@Override
 		public final void set(int index, Collection<T> values) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
+				// TODO: implement setting a collection
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 
 		@Override
 		public final int remove(int index, int count) {
-			final Lock l = lock.writeLock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			int length;
-			
-			l.lock();
 			
 			try {
 				length = removeUnsafe(index, count);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 			
 			return length;
@@ -94,40 +83,34 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 
 		@Override
 		public final void clear() {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				clearUnsafe();
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 
 		@Override
 		public final void move(int startIndex, int newIndex, int count) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				moveUnsafe(startIndex, newIndex, count);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 		
 		@Override
 		public final void reset(Collection<T> newItems) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				resetUnsafe(newItems);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 

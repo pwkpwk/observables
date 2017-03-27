@@ -1,5 +1,7 @@
 package com.ambientbytes.observables;
 
+import java.util.concurrent.locks.ReadWriteLock;
+
 /**
  * Base class for observable lists that observe changes in one other observable list.
  * @author Pavel Karpenko
@@ -12,8 +14,8 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	private IReadOnlyObservableList<T> source;
 	private IListObserver observer;
 	
-	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source) {
-		this.observers = new ListObservers<T>(new DummyReadWriteLock());
+	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source, ReadWriteLock lock) {
+		this.observers = new ListObservers<T>(lock);
 		this.source = source;
 		this.observer = new IListObserver() {
 

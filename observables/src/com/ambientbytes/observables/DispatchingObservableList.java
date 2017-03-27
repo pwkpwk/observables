@@ -3,36 +3,49 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
 
 final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T> {
 
 	private final IDispatcher dispatcher;
 	private final ArrayListEx<T> data;
 		
-	public DispatchingObservableList(IReadOnlyObservableList<T> source, IDispatcher dispatcher) {
-		super(source);
+	public DispatchingObservableList(
+			IReadOnlyObservableList<T> source,
+			IDispatcher dispatcher,
+			ReadWriteLock lock) {
+		super(source, lock);
 		int size = source.getSize();
 
 		this.dispatcher = dispatcher;
 		this.data = new ArrayListEx<T>(source.getSize());
 		
+		final IResource res = LockTool.acquireReadLock(lock);
 		final Collection<T> initialData = new ArrayList<>(source.getSize());
+		final boolean dispatch;
 
-		for (int i = 0; i < size; ++i) {
-			initialData.add(source.getAt(i));
+		try {
+			for (int i = 0; i < size; ++i) {
+				initialData.add(source.getAt(i));
+			}
+			dispatch = initialData.size() > 0;
+		} finally {
+			res.release();
 		}
 
-		dispatcher.dispatch(new IAction() {
-			@Override
-			public void execute() {
-				data.addAll(0, initialData);
-				//
-				// Notify observers because they may have subscribed before the dispatched
-				// action has executed.
-				//
-				notifyAdded(0, initialData.size());
-			}
-		});
+		if (dispatch) {
+			dispatcher.dispatch(new IAction() {
+				@Override
+				public void execute() {
+					data.addAll(0, initialData);
+					//
+					// Notify observers because they may have subscribed before the dispatched
+					// action has executed.
+					//
+					notifyAdded(0, initialData.size());
+				}
+			});
+		}
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package com.ambientbytes.observables;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * Implementation of IReadOnlyObservableList that orders items of another observable list
@@ -56,17 +57,24 @@ final class OrderingReadOnlyObservableList<T>
 	 */
 	public OrderingReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
-			IItemsOrder<T> order) {
-		super(source);
+			IItemsOrder<T> order,
+			ReadWriteLock lock) {
+		super(source, lock);
 		this.data = new ArrayListEx<>(source.getSize());
 		this.order = order;
+
+		IResource res = LockTool.acquireReadLock(lock);
 		
-		final int size = source.getSize();
-		
-		for (int i = 0; i < size; ++i) {
-			this.data.add(new ItemContainer(source.getAt(i)));
+		try {
+			final int size = source.getSize();
+			
+			for (int i = 0; i < size; ++i) {
+				this.data.add(new ItemContainer(source.getAt(i)));
+			}
+			Collections.sort(this.data, makeComparator(order));
+		} finally {
+			res.release();
 		}
-		Collections.sort(this.data, makeComparator(order));
 	}
 
 	@Override

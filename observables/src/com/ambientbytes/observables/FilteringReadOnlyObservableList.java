@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReadWriteLock;
 
 final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
@@ -52,8 +53,9 @@ final class FilteringReadOnlyObservableList<T>
 
 	public FilteringReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
-			IItemFilter<T> filter) {
-		super(source);
+			IItemFilter<T> filter,
+			ReadWriteLock lock) {
+		super(source, lock);
 		this.data = new ArrayList<ItemContainer>(source.getSize());
 		this.filteredOutItems = new HashMap<T, ItemContainer>();
 		this.filter = filter;
