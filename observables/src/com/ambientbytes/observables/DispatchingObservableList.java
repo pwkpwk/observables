@@ -76,12 +76,28 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	
 	@Override
 	protected void onChanging(IReadOnlyObservableList<T> source, int startIndex, int count) {
-		// TODO: implement DispatchingObservableList.onChanging
 	}
 	
 	@Override
-	protected void onChanged(IReadOnlyObservableList<T> source, int startIndex, int count) {
-		// TODO: implement DispatchingObservableList.onChanged
+	protected void onChanged(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		final Collection<T> newValues = new ArrayList<>(count);
+		
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			newValues.add(source.getAt(i));
+		}
+		
+		dispatcher.dispatch(new IAction(){
+			@Override
+			public void execute() {
+				notifyChanging(startIndex, count);
+				
+				int i = startIndex;
+				for (T value : newValues) {
+					data.set(i++, value);
+				}
+				notifyChanged(startIndex, count);
+			}
+		});
 	}
 	
 	@Override

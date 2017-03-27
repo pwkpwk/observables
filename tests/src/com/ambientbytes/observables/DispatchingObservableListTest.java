@@ -271,6 +271,54 @@ public class DispatchingObservableListTest {
 		}
 	}
 	
+	@Test
+	public void setCollectionDispatchesChange() {
+		ObservableList<Integer> mol = ObservableCollections.createObservableList();
+		for (int i = 0; i < 10; ++i) {
+			mol.mutator().add(Integer.valueOf(i));
+		}
+		List<Integer> newValues = new ArrayList<>();
+		newValues.add(20);
+		newValues.add(21);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		assertEquals(1, testDispatcher.executeAll());
+		
+		mol.mutator().set(1, newValues);
+		assertEquals(1, dol.getAt(1).intValue());
+		assertEquals(2, dol.getAt(2).intValue());
+		assertEquals(1, testDispatcher.executeAll());
+		assertEquals(20, dol.getAt(1).intValue());
+		assertEquals(21, dol.getAt(2).intValue());
+	}
+	
+	@Test
+	public void setCollectionReportsChange() {
+		ObservableList<Integer> mol = ObservableCollections.createObservableList();
+		for (int i = 0; i < 10; ++i) {
+			mol.mutator().add(Integer.valueOf(i));
+		}
+		List<Integer> newValues = new ArrayList<>();
+		newValues.add(20);
+		newValues.add(21);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		assertEquals(1, testDispatcher.executeAll());
+		dol.addObserver(observer);
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock arg0) throws Throwable {
+				assertEquals(1, dol.getAt(1).intValue());
+				assertEquals(2, dol.getAt(2).intValue());
+				return null;
+			}
+		}).when(observer).changing(eq(1), eq(2));
+		
+		mol.mutator().set(1, newValues);
+		assertEquals(1, testDispatcher.executeAll());
+		
+		verify(observer, times(1)).changing(eq(1), eq(2));
+		verify(observer, times(1)).changed(eq(1), eq(2));
+	}
+	
 	private static <T> void assertListsEqual(IReadOnlyObservableList<T> list1, IReadOnlyObservableList<T> list2) {
 		assertEquals(list1.getSize(), list2.getSize());
 		for (int i = 0; i < list1.getSize(); ++i) {
