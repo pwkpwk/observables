@@ -80,133 +80,10 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 		@Override
 		public void added(int startIndex, int count) {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				onAddedUnsafe(startIndex, count);
-			} finally {
-				l.unlock();
-			}
-		}
-		
-		@Override
-		public void changing(int startIndex, int count) {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				// TODO: implement changing()
-			} finally {
-				l.unlock();
-			}
-		}
-		
-		@Override
-		public void changed(int startIndex, int count) {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				// TODO: implement changed()
-			} finally {
-				l.unlock();
-			}
-		}
-
-		@Override
-		public void removing(int startIndex, int count) {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				onRemovingUnsafe(startIndex, count);
-			} finally {
-				l.unlock();
-			}
-		}
-
-		@Override
-		public void removed(int startIndex, int count) {
-		}
-
-		@Override
-		public void moved(int oldStartIndex, int newStartIndex, int count) {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				onMovedUnsafe(oldStartIndex, newStartIndex, count);
-			} finally {
-				l.unlock();
-			}
-		}
-
-		@Override
-		public void resetting() {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				pendingChange = new ListChange(list.getSize());
-				observers.resetting();
-			} finally {
-				l.unlock();
-			}
-		}
-
-		@Override
-		public void reset() {
-			Lock l = lock.writeLock();
-
-			l.lock();
-			
-			try {
-				final int newSize = list.getSize();
-				final int sizeDifference = newSize - pendingChange.getOldSize();
-				pendingChange = null;
-				
-				if (sizeDifference <= 0) {
-					if (sizeDifference != 0) {
-						for (int i = index + 1; i < lists.size(); ++i) {
-							lists.get(i).shiftBack(0, -sizeDifference);
-						}
-						data.remove(offset, -sizeDifference);
-					}
-					for (int i = 0; i < list.getSize(); ++i) {
-						data.set(offset + i, list.getAt(i));
-					}
-				} else if (sizeDifference > 0) {
-					Collection<T> newHeadItems = new ArrayList<>(sizeDifference);
-					int i = 0;
-					while (i < sizeDifference) {
-						newHeadItems.add(list.getAt(i++));
-					}
-					data.addAll(offset, newHeadItems);
-					while (i < newSize) {
-						data.set(offset + i, list.getAt(i++));
-					}
-					for (i = index + 1; i < lists.size(); ++i) {
-						lists.get(i).shiftForward(0, sizeDifference);
-					}
-				}
-				observers.reset();
-			} finally {
-				l.unlock();
-			}
-		}
-		
-		private void onAddedUnsafe(int startIndex, int count) {
 			if (count > 1) {
 				List<T> newItems = new ArrayList<>(count);
 				for (int i = 0; i < count; ++i) {
-					newItems.add(list.getAt(i));
+					newItems.add(list.getAt(startIndex + i));
 				}
 				data.addAll(offset + startIndex, newItems);
 			} else {
@@ -220,7 +97,21 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			observers.added(offset + startIndex, count);
 		}
 		
-		private void onRemovingUnsafe(int startIndex, int count) {
+		@Override
+		public void changing(int startIndex, int count) {
+			observers.changing(offset + startIndex, count);
+		}
+		
+		@Override
+		public void changed(int startIndex, int count) {
+			for (int i = startIndex; i < startIndex + count; ++i) {
+				data.set(offset + i, list.getAt(i));
+			}
+			observers.changed(offset + startIndex, count);
+		}
+
+		@Override
+		public void removing(int startIndex, int count) {
 			observers.removing(offset + startIndex, count);
 			data.remove(offset + startIndex, count);
 			for (int listIndex = index + 1; listIndex < lists.size(); ++listIndex) {
@@ -228,10 +119,54 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			}
 			observers.removed(offset + startIndex, count);
 		}
-		
-		private void onMovedUnsafe(int oldStartIndex, int newStartIndex, int count) {
+
+		@Override
+		public void removed(int startIndex, int count) {
+		}
+
+		@Override
+		public void moved(int oldStartIndex, int newStartIndex, int count) {
 			data.move(offset + oldStartIndex, offset + newStartIndex, count);
 			observers.moved(offset + oldStartIndex, offset + newStartIndex, count);
+		}
+
+		@Override
+		public void resetting() {
+			pendingChange = new ListChange(list.getSize());
+			observers.resetting();
+		}
+
+		@Override
+		public void reset() {
+			final int newSize = list.getSize();
+			final int sizeDifference = newSize - pendingChange.getOldSize();
+			pendingChange = null;
+			
+			if (sizeDifference <= 0) {
+				if (sizeDifference != 0) {
+					for (int i = index + 1; i < lists.size(); ++i) {
+						lists.get(i).shiftBack(0, -sizeDifference);
+					}
+					data.remove(offset, -sizeDifference);
+				}
+				for (int i = 0; i < list.getSize(); ++i) {
+					data.set(offset + i, list.getAt(i));
+				}
+			} else if (sizeDifference > 0) {
+				Collection<T> newHeadItems = new ArrayList<>(sizeDifference);
+				int i = 0;
+				while (i < sizeDifference) {
+					newHeadItems.add(list.getAt(i++));
+				}
+				data.addAll(offset, newHeadItems);
+				while (i < newSize) {
+					data.set(offset + i, list.getAt(i++));
+				}
+				for (i = index + 1; i < lists.size(); ++i) {
+					lists.get(i).shiftForward(0, sizeDifference);
+				}
+			}
+			observers.reset();
 		}
 	}
 	
@@ -244,32 +179,12 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 	@Override
 	public T getAt(int index) {
-		T value;
-		Lock l = lock.readLock();
-
-		l.lock();
-		
-		try {
-			value = data.get(index);
-		} finally {
-			l.unlock();
-		}
-		return value;
+		return data.get(index);
 	}
 
 	@Override
 	public int getSize() {
-		int size;
-		Lock l = lock.readLock();
-
-		l.lock();
-		
-		try {
-			size = data.size();
-		} finally {
-			l.unlock();
-		}
-		return size;
+		return data.size();
 	}
 
 	@Override
@@ -284,9 +199,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 	@Override
 	public void add(IReadOnlyObservableList<T> list) {
-		Lock l = lock.writeLock();
-
-		l.lock();
+		IResource res = LockTool.acquireWriteLock(lock);
 		
 		try {
 			for (ListInfo listInfo : lists) {
@@ -308,15 +221,13 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 				observers.added(startIndex, length);
 			}
 		} finally {
-			l.unlock();
+			res.release();
 		}
 	}
 
 	@Override
 	public void remove(IReadOnlyObservableList<T> list) {
-		Lock l = lock.writeLock();
-
-		l.lock();
+		IResource res = LockTool.acquireWriteLock(lock);
 		
 		try {
 			int i = 0;
@@ -339,15 +250,13 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 				}
 			}
 		} finally {
-			l.unlock();
+			res.release();
 		}
 	}
 
 	@Override
 	public void unlink() {
-		Lock l = lock.writeLock();
-
-		l.lock();
+		IResource res = LockTool.acquireWriteLock(lock);
 		
 		try {
 			for (ListInfo list : lists) {
@@ -355,7 +264,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			}
 			lists.clear();
 		} finally {
-			l.unlock();
+			res.release();
 		}
 	}
 }
