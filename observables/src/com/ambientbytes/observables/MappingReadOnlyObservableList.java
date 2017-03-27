@@ -74,7 +74,11 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	}
 	
 	private final void onChanged(int startIndex, int count) {
-		// TODO: implement MappingReadOnlyObservableList.onChanged
+		observers.changing(startIndex, count);
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			data.set(i, mapper.map(source.getAt(i)));
+		}
+		observers.changed(startIndex, count);
 	}
 	
 	private final void onRemoving(int startIndex, int count) {

@@ -25,11 +25,9 @@ public class MappingReadOnlyObservableListTests {
 		}
 	}
 	
-	@Mock
-	IListObserver stringObserver;
-	
-	@Captor
-	ArgumentCaptor<Collection<String>> stringsCaptor;
+	@Mock IListObserver stringObserver;
+	@Mock IItemMapper<Integer, String> mockMapper;
+	@Captor ArgumentCaptor<Collection<String>> stringsCaptor;
 
 	@Before
 	public void setUp() throws Exception {
@@ -251,6 +249,44 @@ public class MappingReadOnlyObservableListTests {
 		verify(stringObserver, never()).added(anyInt(), anyInt());
 		verify(stringObserver, never()).removing(anyInt(), anyInt());
 		verify(stringObserver, never()).removed(anyInt(), anyInt());
+	}
+		
+	@Test
+	public void setCallsMapper() {
+		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ol.mutator().add(0);
+		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper);
+		
+		verify(mockMapper, times(1)).map(eq(Integer.valueOf(0)));
+		ol.mutator().set(0, 10);
+		
+		verify(mockMapper, times(1)).map(eq(Integer.valueOf(10)));
+		assertEquals("10", mol.getAt(0));
+	}
+	
+	@Test
+	public void setReportsChange() {
+		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ol.mutator().add(0);
+		ol.mutator().add(1);
+		ol.mutator().add(2);
+		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
+		when(mockMapper.map(eq(Integer.valueOf(1)))).thenReturn("1");
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper);
+		mol.addObserver(stringObserver);
+		doAnswer(new Answer<Void>() {
+			@Override
+			public Void answer(InvocationOnMock arg0) throws Throwable {
+				assertEquals("1", mol.getAt(1));
+				return null;
+			}
+		}).when(stringObserver).changing(eq(1), eq(1));
+		
+		ol.mutator().set(1, 10);
+
+		verify(stringObserver, times(1)).changing(eq(1), eq(1));
+		verify(stringObserver, times(1)).changed(eq(1), eq(1));
 	}
 
 }
