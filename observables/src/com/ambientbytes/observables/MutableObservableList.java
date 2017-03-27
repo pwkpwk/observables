@@ -50,7 +50,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
-				// TODO: implement setting a single item
+				setUnsafe(index, value);
 			} finally {
 				res.release();
 			}
@@ -61,7 +61,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 			IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
-				// TODO: implement setting a collection
+				setUnsafe(index, values);
 			} finally {
 				res.release();
 			}
@@ -70,7 +70,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		@Override
 		public final int remove(int index, int count) {
 			IResource res = LockTool.acquireWriteLock(lock);
-			int length;
+			final int length;
 			
 			try {
 				length = removeUnsafe(index, count);
@@ -144,6 +144,31 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 				data.addAll(index, values);
 				observers.added(index, values.size());
 			}
+		}
+		
+		private void setUnsafe(final int index, final T value) {
+			if (index < 0 || index >= data.size()) {
+				throw new IndexOutOfBoundsException();
+			}
+			
+			observers.changing(index, 1);
+			data.set(index, value);
+			observers.changed(index, 1);
+		}
+		
+		private void setUnsafe(final int index, final Collection<T> values) {
+			final int count = values.size();
+			
+			if (index < 0 || index + count > data.size()) {
+				throw new IndexOutOfBoundsException();
+			}
+						
+			observers.changing(index, count);
+			int i = index;
+			for (T value : values) {
+				data.set(i++, value);
+			}
+			observers.changed(index, count);
 		}
 
 		private void clearUnsafe() {

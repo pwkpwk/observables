@@ -473,5 +473,183 @@ public class MutableObservableListTests {
 			assertEquals(original[i], mol.getAt(i).intValue());
 		}
 	}
+	
+	@Test
+	public void setOneSets() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(0, 100);
+		
+		assertEquals(100, mol.getAt(0).intValue());
+	}
+	
+	@Test
+	public void setLastOneSets() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(original.length - 1, 100);
+		
+		assertEquals(100, mol.getAt(original.length - 1).intValue());
+	}
+	
+	@Test
+	public void setCollectionSets() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>();
+		newContents.add(100);
+		newContents.add(101);
+		newContents.add(102);
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(1, newContents);
+		
+		assertEquals(100, mol.getAt(1).intValue());
+		assertEquals(101, mol.getAt(2).intValue());
+		assertEquals(102, mol.getAt(3).intValue());
+	}
+	
+	@Test
+	public void setCollectionAtBackSets() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>();
+		newContents.add(100);
+		newContents.add(101);
+		newContents.add(102);
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(original.length - newContents.size() - 1, newContents);
+		
+		assertEquals(100, mol.getAt(original.length - newContents.size() - 1).intValue());
+		assertEquals(101, mol.getAt(original.length - newContents.size()).intValue());
+		assertEquals(102, mol.getAt(original.length - newContents.size() + 1).intValue());
+	}
+	
+	@Test(expected = IndexOutOfBoundsException.class)
+	public void setOneNegativeIndexThrows() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(-2, 456);
+	}
+	
+	@Test(expected = IndexOutOfBoundsException.class)
+	public void setOneBehindBackThrows() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(original.length, 456);
+	}
+	
+	@Test(expected = IndexOutOfBoundsException.class)
+	public void setCollectionNegativeIndexThrows() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>();
+		newContents.add(100);
+		newContents.add(101);
+		newContents.add(102);
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(-1, newContents);
+	}
+	
+	@Test(expected = IndexOutOfBoundsException.class)
+	public void setCollectionBehindBackThrows() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		Collection<Integer> newContents = new ArrayList<Integer>();
+		newContents.add(100);
+		newContents.add(101);
+		newContents.add(102);
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(original.length - 1, newContents);
+	}
+	
+	@Test
+	public void setOneReports() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock arg0) throws Throwable {
+				assertEquals(0, mol.getAt(0).intValue());
+				return null;
+			}
+		}).when(observer).changing(anyInt(), anyInt());
+		
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(0, 100);
+		
+		verify(observer, times(1)).changing(eq(0), eq(1));
+		verify(observer, times(1)).changed(eq(0), eq(1));
+	}
+	
+	@Test
+	public void setCollectionReports() {
+		final int[] original = { 0, 1, 2, 3, 4, 5 };
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteLock());
+		for (int i = 0; i < original.length; ++i) {
+			mol.getMutator().add(i, Integer.valueOf(original[i]));
+		}
+		final Collection<Integer> newContents = new ArrayList<Integer>();
+		newContents.add(100);
+		newContents.add(101);
+		newContents.add(102);
+		doAnswer(new Answer<Void>(){
+			@Override
+			public Void answer(InvocationOnMock arg0) throws Throwable {
+				assertEquals(0, mol.getAt(0).intValue());
+				assertEquals(1, mol.getAt(1).intValue());
+				assertEquals(2, mol.getAt(2).intValue());
+				return null;
+			}
+		}).when(observer).changing(anyInt(), anyInt());
+		
+		mol.addObserver(observer);
+		
+		mol.getMutator().set(0, newContents);
+		
+		verify(observer, times(1)).changing(eq(0), eq(3));
+		verify(observer, times(1)).changed(eq(0), eq(3));
+	}
 
 }
