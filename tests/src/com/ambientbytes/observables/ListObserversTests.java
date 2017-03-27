@@ -1,10 +1,6 @@
 package com.ambientbytes.observables;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -15,7 +11,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-public class ListObserversCollectionTests {
+public class ListObserversTests {
 	
 	@Mock IListObserver observer;
 
@@ -125,6 +121,34 @@ public class ListObserversCollectionTests {
 		verify(monitor, times(1)).writeLock();
 		verify(lock, times(1)).lock();
 		verify(lock, times(1)).unlock();
+	}
+	
+	@Test
+	public void reportChangingReported() {
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
+		
+		collection.add(observer);
+		collection.changing(0, 10);
+		
+		verify(observer, times(1)).changing(eq(0), eq(10));
+	}
+	
+	@Test
+	public void reportChangedReported() {
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
+		
+		collection.add(observer);
+		collection.changed(0, 10);
+		
+		verify(observer, times(1)).changed(eq(0), eq(10));
+	}
+	
+	@Test(expected = IllegalStateException.class)
+	public void addObserverTwiceThrows() {
+		ListObservers<Object> collection = new ListObservers<>(new DummyReadWriteLock());
+		
+		collection.add(observer);
+		collection.add(observer);
 	}
 
 }

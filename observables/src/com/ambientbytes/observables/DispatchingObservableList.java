@@ -1,6 +1,7 @@
 package com.ambientbytes.observables;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T> {
@@ -14,9 +15,24 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 
 		this.dispatcher = dispatcher;
 		this.data = new ArrayListEx<T>(source.getSize());
+		
+		final Collection<T> initialData = new ArrayList<>(source.getSize());
+
 		for (int i = 0; i < size; ++i) {
-			this.data.add(source.getAt(i));
+			initialData.add(source.getAt(i));
 		}
+
+		dispatcher.dispatch(new IAction() {
+			@Override
+			public void execute() {
+				data.addAll(0, initialData);
+				//
+				// Notify observers because they may have subscribed before the dispatched
+				// action has executed.
+				//
+				notifyAdded(0, initialData.size());
+			}
+		});
 	}
 
 	@Override
@@ -43,6 +59,16 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 				notifyAdded(startIndex, count);
 			}
 		});
+	}
+	
+	@Override
+	protected void onChanging(IReadOnlyObservableList<T> source, int startIndex, int count) {
+		// TODO: implement DispatchingObservableList.onChanging
+	}
+	
+	@Override
+	protected void onChanged(IReadOnlyObservableList<T> source, int startIndex, int count) {
+		// TODO: implement DispatchingObservableList.onChanged
 	}
 	
 	@Override

@@ -51,6 +51,30 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 				l.unlock();
 			}
 		}
+		
+		@Override
+		public final void set(int index, T value) {
+			final Lock l = lock.writeLock();
+			
+			l.lock();
+			
+			try {
+			} finally {
+				l.unlock();
+			}
+		}
+		
+		@Override
+		public final void set(int index, Collection<T> values) {
+			final Lock l = lock.writeLock();
+			
+			l.lock();
+			
+			try {
+			} finally {
+				l.unlock();
+			}
+		}
 
 		@Override
 		public final int remove(int index, int count) {

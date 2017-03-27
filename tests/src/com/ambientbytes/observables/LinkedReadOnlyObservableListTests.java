@@ -33,6 +33,14 @@ public class LinkedReadOnlyObservableListTests {
 		}
 
 		@Override
+		protected void onChanging(IReadOnlyObservableList<Integer> source, int startIndex, int count) {
+		}
+
+		@Override
+		protected void onChanged(IReadOnlyObservableList<Integer> source, int startIndex, int count) {
+		}
+
+		@Override
 		protected void onRemoving(IReadOnlyObservableList<Integer> source, int startIndex, int count) {
 		}
 

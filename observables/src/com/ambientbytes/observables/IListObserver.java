@@ -15,6 +15,20 @@ public interface IListObserver {
 	void added(int startIndex, int count);
 
 	/**
+	 * Called before a range of items in the list will be changed.
+	 * @param startIndex zero-based index of the first changed item.
+	 * @param count number of items to be changed.
+	 */
+	void changing(int startIndex, int count);
+
+	/**
+	 * Called after a range of items in the list has been changed.
+	 * @param startIndex zero-based index of the first changed item.
+	 * @param count number of changed items.
+	 */
+	void changed(int startIndex, int count);
+
+	/**
 	 * Called immediately before removing items from the observed list.
 	 * @param startIndex zero-based index of the first item to be removed.
 	 * @param count number of items to be removed.

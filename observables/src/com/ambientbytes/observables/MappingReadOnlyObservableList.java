@@ -23,6 +23,8 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		}
 		this.sourceObserver = new IListObserver() {
 			@Override public void added(int startIndex, int count) { onAdded(startIndex, count); }
+			@Override public void changing(int startIndex, int count) { /* do nothing */ }
+			@Override public void changed(int startIndex, int count) { onChanged(startIndex, count); }
 			@Override public void removing(int startIndex, int count) { onRemoving(startIndex, count); }
 			@Override public void removed(int startIndex, int count) { /* do nothing */ }
 			@Override public void moved(int oldStartIndex, int newStartIndex, int count) { onMoved(oldStartIndex, newStartIndex, count); }
@@ -69,6 +71,10 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		}
 		data.addAll(startIndex, mapped);
 		observers.added(startIndex, count);
+	}
+	
+	private final void onChanged(int startIndex, int count) {
+		// TODO: implement MappingReadOnlyObservableList.onChanged
 	}
 	
 	private final void onRemoving(int startIndex, int count) {

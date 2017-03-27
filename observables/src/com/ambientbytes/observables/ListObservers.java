@@ -50,6 +50,20 @@ final class ListObservers<T> implements IListObserver {
 	}
 	
 	@Override
+	public void changing(int startIndex, int count) {
+		for (IListObserver observer : makeInvocationList()) {
+			observer.changing(startIndex, count);
+		}
+	}
+	
+	@Override
+	public void changed(int startIndex, int count) {
+		for (IListObserver observer : makeInvocationList()) {
+			observer.changed(startIndex, count);
+		}
+	}
+	
+	@Override
 	public void removing(int startIndex, int count) {
 		for (IListObserver observer : makeInvocationList()) {
 			observer.removing(startIndex, count);

@@ -21,6 +21,16 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 			public void added(int startIndex, int count) {
 				onAdded(source, startIndex, count);
 			}
+			
+			@Override
+			public void changing(int startIndex, int count) {
+				onChanging(source, startIndex, count);
+			}
+			
+			@Override
+			public void changed(int startIndex, int count) {
+				onChanged(source, startIndex, count);
+			}
 
 			@Override
 			public void removing(int startIndex, int count) {
@@ -73,6 +83,8 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 
 	protected void onUnlinked() {}
 	protected abstract void onAdded(IReadOnlyObservableList<T> source, int startIndex, int count);
+	protected abstract void onChanging(IReadOnlyObservableList<T> source, int startIndex, int count);
+	protected abstract void onChanged(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onRemoved(IReadOnlyObservableList<T> source, int startIndex, int count);
 	protected abstract void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count);
@@ -81,6 +93,14 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	
 	protected final void notifyAdded(int startIndex, int count) {
 		this.observers.added(startIndex, count);
+	}
+	
+	protected final void notifyChanging(int startIndex, int count) {
+		this.observers.changing(startIndex, count);
+	}
+	
+	protected final void notifyChanged(int startIndex, int count) {
+		this.observers.changed(startIndex, count);
 	}
 	
 	protected final void notifyRemoving(int startIndex, int count) {

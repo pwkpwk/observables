@@ -3,8 +3,11 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
@@ -13,6 +16,7 @@ final class FilteringReadOnlyObservableList<T>
 	private final List<ItemContainer> data;
 	private final Map<T, ItemContainer> filteredOutItems;
 	private IItemFilter<T> filter;
+	private Set<Integer> pendingChange;
 	
 	private final class ItemContainer implements IObjectMutationObserver {
 		
@@ -53,6 +57,7 @@ final class FilteringReadOnlyObservableList<T>
 		this.data = new ArrayList<ItemContainer>(source.getSize());
 		this.filteredOutItems = new HashMap<T, ItemContainer>();
 		this.filter = filter;
+		this.pendingChange = null;
 		
 		int size = source.getSize();
 		
@@ -92,6 +97,89 @@ final class FilteringReadOnlyObservableList<T>
 		if (reportedCount > 0) {
 			notifyAdded(reportedStartIndex, reportedCount);
 		}
+	}
+	
+	@Override
+	protected void onChanging(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		//
+		// Create an ordered set of indexes so later changed items may be bundled up
+		// into ranges for reporting to observers.
+		//
+		pendingChange = new TreeSet<>();
+		
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			final T changingItem = source.getAt(i);
+			final ItemContainer container = filteredOutItems.remove(changingItem);
+			
+			if (container != null) {
+				container.unadvise();
+			} else {
+				int index = indexOfContainer(changingItem);
+				
+				data.get(index).unadvise();
+				//
+				// Remember position of the changing item so it can be replaced with a new one later.
+				//
+				pendingChange.add(index);
+			}
+		}
+	}
+	
+	@Override
+	protected void onChanged(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		Collection<ItemContainer> backItems = null;
+		int backItemsCapacity = pendingChange.size();
+		Iterator<Integer> emptySlots = pendingChange.iterator();
+		
+		for (int i = startIndex; i < startIndex + count; ++i) {
+			final ItemContainer container = new ItemContainer(source.getAt(i));
+			
+			if (filter.isIn(container.item())) {
+				if (emptySlots.hasNext()) {
+					final int index = emptySlots.next().intValue();
+					data.set(index, container);
+					// TODO: optimize reporting - build ranges if added items are adjacent.
+					notifyChanged(index, 1);
+					backItemsCapacity--;
+				} else {
+					//
+					// Ran out of empty slots, add items at the back of the list
+					//
+					if (backItems == null) {
+						backItems = new ArrayList<>(backItemsCapacity);
+					}
+					backItems.add(container);
+				}
+			} else {
+				filteredOutItems.put(container.item(), container);
+			}
+		}
+		
+		if (backItems != null) {
+			//
+			// Items must be added at the back of the list.
+			//
+			final int index = data.size();
+			data.addAll(backItems);
+			notifyAdded(index, backItems.size());
+		} else {
+			//
+			// There may be more empty slots - remove them.
+			// The iterator will give indexes in the ascending order so each removal
+			// will shift the list back.
+			//
+			int shift = 0; // the accumulated index shift after removal of all items so far.
+			
+			while (emptySlots.hasNext()) {
+				// TODO: optimize - build ranges of adjacent items and remove/report the ranges.
+				final int index = emptySlots.next().intValue();
+				data.remove(index - shift);
+				notifyRemoved(index - shift, 1);
+				shift++;
+			}
+		}
+		
+		pendingChange = null;
 	}
 
 	@Override

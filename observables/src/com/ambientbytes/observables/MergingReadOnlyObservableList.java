@@ -90,6 +90,32 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 				l.unlock();
 			}
 		}
+		
+		@Override
+		public void changing(int startIndex, int count) {
+			Lock l = lock.writeLock();
+
+			l.lock();
+			
+			try {
+				// TODO: implement changing()
+			} finally {
+				l.unlock();
+			}
+		}
+		
+		@Override
+		public void changed(int startIndex, int count) {
+			Lock l = lock.writeLock();
+
+			l.lock();
+			
+			try {
+				// TODO: implement changed()
+			} finally {
+				l.unlock();
+			}
+		}
 
 		@Override
 		public void removing(int startIndex, int count) {

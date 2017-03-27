@@ -100,6 +100,16 @@ final class OrderingReadOnlyObservableList<T>
 			insertAndNotify(source.getAt(startIndex + i));
 		}
 	}
+
+	@Override
+	protected void onChanging(IReadOnlyObservableList<T> source, int startIndex, int count) {
+		// TODO: implement onChanging
+	}
+
+	@Override
+	protected void onChanged(IReadOnlyObservableList<T> source, int startIndex, int count) {
+		// TODO: implement onChanged
+	}
 	
 	@Override
 	protected void onRemoving(IReadOnlyObservableList<T> source, final int startIndex, final int count) {

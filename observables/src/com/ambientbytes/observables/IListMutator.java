@@ -31,6 +31,21 @@ public interface IListMutator<T> {
 	 * @param values iterable collection of items to be added to the list.
 	 */
 	void add(int index, Collection<T> values);
+
+	/**
+	 * Change an item at the specified index.
+	 * @param index index of the item to be changed.
+	 * @param value new value for the item.
+	 */
+	void set(int index, T value);
+	
+	/**
+	 * Change a range of items in the list starting at the specified index.
+	 * @param index index of the first item to be changed.
+	 * @param values iterable collection of items to replace items in the list.
+	 * The method throws an exception if the collection does not fit in the list.
+	 */
+	void set(int index, Collection<T> values);
 	
 	/**
 	 * Remove a range of items from the list.
