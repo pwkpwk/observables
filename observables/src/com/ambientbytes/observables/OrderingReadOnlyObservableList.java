@@ -174,17 +174,29 @@ final class OrderingReadOnlyObservableList<T>
 	}
 	
 	private void onItemMutated(T item) {
-		final int oldIndex = indexOfMutatedItem(item);
 		//
-		// Exclude the mutated item and binary search the new position for the item.
-		// If the position has changed, move the item.
+		// Item mutations must be processed under a write lock because they
+		// may change the collection that is updated by event handlers that are supposed
+		// to be synchronized by the same lock (all collections in the pipeline are supposed
+		// to share a single lock).
 		//
-		IRandomAccess<ItemContainer> pokedAccess = new PokedListRandomAccess<>(data, oldIndex);
-		final int newIndex = indexOfFirstGreaterOrEqualItem(pokedAccess, item);
+		IResource res = LockTool.acquireWriteLock(lock());
 		
-		if (oldIndex != newIndex) {
-			data.move(oldIndex, newIndex, 1);
-			notifyMoved(oldIndex, newIndex, 1);
+		try {
+			final int oldIndex = indexOfMutatedItem(item);
+			//
+			// Exclude the mutated item and binary search the new position for the item.
+			// If the position has changed, move the item.
+			//
+			IRandomAccess<ItemContainer> pokedAccess = new PokedListRandomAccess<>(data, oldIndex);
+			final int newIndex = indexOfFirstGreaterOrEqualItem(pokedAccess, item);
+			
+			if (oldIndex != newIndex) {
+				data.move(oldIndex, newIndex, 1);
+				notifyMoved(oldIndex, newIndex, 1);
+			}
+		} finally {
+			res.release();
 		}
 	}
 	

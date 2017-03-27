@@ -268,23 +268,35 @@ final class FilteringReadOnlyObservableList<T>
 	}
 	
 	private void onItemMutated(T item) {
-		if (filter.isIn(item)) {
-			ItemContainer container = filteredOutItems.remove(item);
-			
-			if (container != null) {
-				int index = this.data.size();
-				this.data.add(container);
-				notifyAdded(index, 1);
+		//
+		// Item mutations must be processed under a write lock because they
+		// may change the collection that is updated by event handlers that are supposed
+		// to be synchronized by the same lock (all collections in the pipeline are supposed
+		// to share a single lock).
+		//
+		IResource res = LockTool.acquireWriteLock(lock());
+		
+		try {
+			if (filter.isIn(item)) {
+				ItemContainer container = filteredOutItems.remove(item);
+				
+				if (container != null) {
+					int index = this.data.size();
+					this.data.add(container);
+					notifyAdded(index, 1);
+				}
+			} else {
+				final int index = indexOfContainer(item);
+				
+				if (index >= 0) {
+					filteredOutItems.put(item, data.get(index));
+					notifyRemoving(index, 1);
+					data.remove(index);
+					notifyRemoved(index, 1);
+				}
 			}
-		} else {
-			final int index = indexOfContainer(item);
-			
-			if (index >= 0) {
-				filteredOutItems.put(item, data.get(index));
-				notifyRemoving(index, 1);
-				data.remove(index);
-				notifyRemoved(index, 1);
-			}
+		} finally {
+			res.release();
 		}
 	}
 	

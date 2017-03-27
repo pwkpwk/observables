@@ -11,11 +11,13 @@ import java.util.concurrent.locks.ReadWriteLock;
 abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T> {
 
 	private final ListObservers<T> observers;
+	private final ReadWriteLock lock;
 	private IReadOnlyObservableList<T> source;
 	private IListObserver observer;
 	
 	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source, ReadWriteLock lock) {
 		this.observers = new ListObservers<T>(lock);
+		this.lock = lock;
 		this.source = source;
 		this.observer = new IListObserver() {
 
@@ -92,6 +94,10 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	protected abstract void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count);
 	protected abstract void onResetting(IReadOnlyObservableList<T> source);
 	protected abstract void onReset(IReadOnlyObservableList<T> source);
+
+	protected ReadWriteLock lock() {
+		return lock;
+	}
 	
 	protected final void notifyAdded(int startIndex, int count) {
 		this.observers.added(startIndex, count);
