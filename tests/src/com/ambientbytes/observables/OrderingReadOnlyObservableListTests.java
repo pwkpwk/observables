@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.concurrent.locks.ReadWriteLock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -79,10 +80,12 @@ public class OrderingReadOnlyObservableListTests {
 	@Captor ArgumentCaptor<Collection<Integer>> integerCollectionCaptor;
 	@Captor ArgumentCaptor<Collection<TestItem>> testCollectionCaptor;
 	@Mock IListObserver observer;
+	private ReadWriteLock lock;
 
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		lock = new DummyReadWriteLock();
 	}
 
 	@Test
@@ -94,7 +97,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(4);
 		IItemsOrder<Integer> order = new IntegerOrder(); 
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), order);
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), order, lock);
 
 		assertSame(order, ool.getOrder());
 		assertEquals(ol.list().getSize(), ool.getSize());
@@ -108,7 +111,7 @@ public class OrderingReadOnlyObservableListTests {
 	@Test
 	public void addToSourceSortsSourceItems() {
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ol.mutator().add(5);
 		ol.mutator().add(3);
 		ol.mutator().add(1);
@@ -125,7 +128,7 @@ public class OrderingReadOnlyObservableListTests {
 	@Test
 	public void addToSourceReportsAdding() {
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ol.mutator().add(5);
 		ol.mutator().add(3);
 		ol.mutator().add(1);
@@ -144,7 +147,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ol.mutator().remove(2, 1);
 		
 		assertEquals(2, ool.getAt(0).intValue());
@@ -161,7 +164,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ool.addObserver(observer);
 		
 		doAnswer(new Answer<Void>() {
@@ -184,7 +187,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ool.addObserver(observer);
 		ol.mutator().remove(0, 1);
 	
@@ -205,7 +208,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(1);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ol.mutator().remove(1, 2);
 		
 		assertEquals(1, ool.getAt(0).intValue());
@@ -221,7 +224,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(1);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		IItemsOrder<Integer> order = new IntegerReverseOrder(); 
 		ool.setOrder(order);
 
@@ -241,7 +244,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(1);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder());
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ool.addObserver(observer);
 
 		ool.setOrder(new IntegerReverseOrder());
@@ -258,7 +261,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(item = new TestItem(3));
 		ol.mutator().add(new TestItem(4));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		
 		assertNotNull(ool); // to suppress the warning about ool not being used
 		assertEquals(1, item.getObserversNumber());
@@ -279,7 +282,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(new TestItem(4));
 		ol.mutator().add(new TestItem(5));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
 				boolean found = false;
@@ -310,7 +313,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(item = new TestItem(3));
 		ol.mutator().add(new TestItem(4));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		
 		item.setValue(0);
 
@@ -328,7 +331,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(item = new TestItem(3));
 		ol.mutator().add(new TestItem(4));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		
 		item.setValue(9);
 
@@ -346,7 +349,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(item = new TestItem(3));
 		ol.mutator().add(new TestItem(4));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		ool.addObserver(observer);
 		
 		item.setValue(9);
@@ -366,7 +369,7 @@ public class OrderingReadOnlyObservableListTests {
 		for (TestItem item : newItems) {
 			newItemsList.add(item);
 		}
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 
 		ol.mutator().reset(newItemsList);
 		
@@ -387,7 +390,7 @@ public class OrderingReadOnlyObservableListTests {
 		for (TestItem item : originalItems) {
 			ol.mutator().add(item);
 		}
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		ool.addObserver(observer);
 
 		ol.mutator().move(0, 2, 2);
@@ -407,7 +410,7 @@ public class OrderingReadOnlyObservableListTests {
 		for (TestItem item : originalItems) {
 			ol.mutator().add(item);
 		}
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder());
+		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		ool.addObserver(observer);
 		ool.unlink();
 

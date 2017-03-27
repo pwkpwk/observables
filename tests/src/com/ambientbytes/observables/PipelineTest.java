@@ -50,27 +50,23 @@ public class PipelineTest {
 
 		@Override
 		public void addObserver(IObjectMutationObserver observer) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			final IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				observers.add(observer);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 
 		@Override
 		public void removeObserver(IObjectMutationObserver observer) {
-			final Lock l = lock.writeLock();
-			
-			l.lock();
+			final IResource res = LockTool.acquireWriteLock(lock);
 			
 			try {
 				observers.remove(observer);
 			} finally {
-				l.unlock();
+				res.release();
 			}
 		}
 		
@@ -156,16 +152,16 @@ public class PipelineTest {
 		IListMutator<TestModel> mutator = models.mutator();
 		
 		ILinkedReadOnlyObservableList<TestModel> filtered =
-				new FilteringReadOnlyObservableList<>(models.list(), new ModelFilter());
+				new FilteringReadOnlyObservableList<>(models.list(), new ModelFilter(), lock);
 		
 		ILinkedReadOnlyObservableList<TestViewModel> mapped =
 				new MappingReadOnlyObservableList<TestModel, TestViewModel>(filtered, new ModelMapper(lock, dispatcher));
 		
 		ILinkedReadOnlyObservableList<TestViewModel> ordering =
-				new OrderingReadOnlyObservableList<>(mapped, new ViewModelOrder());
+				new OrderingReadOnlyObservableList<>(mapped, new ViewModelOrder(), lock);
 		
 		ILinkedReadOnlyObservableList<TestViewModel> list =
-				new DispatchingObservableList<>(ordering, dispatcher);
+				new DispatchingObservableList<>(ordering, dispatcher, lock);
 
 		for (int i = 1; i <= 10000; ++i) {
 			mutator.add(new TestModel(i));
