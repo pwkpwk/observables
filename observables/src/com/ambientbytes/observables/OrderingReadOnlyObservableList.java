@@ -105,18 +105,19 @@ final class OrderingReadOnlyObservableList<T>
 	@Override
 	protected void onAdded(IReadOnlyObservableList<T> source, int startIndex, int count) {
 		for (int i = 0; i < count; ++i) {
+			// TODO: optimize reporting - bundle items up in ranges
 			insertAndNotify(source.getAt(startIndex + i));
 		}
 	}
 
 	@Override
 	protected void onChanging(IReadOnlyObservableList<T> source, int startIndex, int count) {
-		// TODO: implement onChanging
+		onRemoving(source, startIndex, count);
 	}
 
 	@Override
 	protected void onChanged(IReadOnlyObservableList<T> source, int startIndex, int count) {
-		// TODO: implement onChanged
+		onAdded(source, startIndex, count);
 	}
 	
 	@Override

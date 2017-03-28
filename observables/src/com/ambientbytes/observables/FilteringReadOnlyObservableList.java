@@ -14,7 +14,7 @@ final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
 		implements IItemFilterContainer<T> {
 	
-	private final List<ItemContainer> data;
+	private final ArrayListEx<ItemContainer> data;
 	private final Map<T, ItemContainer> filteredOutItems;
 	private IItemFilter<T> filter;
 	private Set<Integer> pendingChange;
@@ -56,7 +56,7 @@ final class FilteringReadOnlyObservableList<T>
 			IItemFilter<T> filter,
 			ReadWriteLock lock) {
 		super(source, lock);
-		this.data = new ArrayList<ItemContainer>(source.getSize());
+		this.data = new ArrayListEx<ItemContainer>(source.getSize());
 		this.filteredOutItems = new HashMap<T, ItemContainer>();
 		this.filter = filter;
 		this.pendingChange = null;
@@ -139,6 +139,7 @@ final class FilteringReadOnlyObservableList<T>
 			if (filter.isIn(container.item())) {
 				if (emptySlots.hasNext()) {
 					final int index = emptySlots.next().intValue();
+					notifyChanging(index, 1);
 					data.set(index, container);
 					// TODO: optimize reporting - build ranges if added items are adjacent.
 					notifyChanged(index, 1);
@@ -171,13 +172,33 @@ final class FilteringReadOnlyObservableList<T>
 			// will shift the list back.
 			//
 			int shift = 0; // the accumulated index shift after removal of all items so far.
+			RangeDetector rd = new RangeDetector();
+			RangeDetector.Range range = null;
 			
 			while (emptySlots.hasNext()) {
-				// TODO: optimize - build ranges of adjacent items and remove/report the ranges.
-				final int index = emptySlots.next().intValue();
-				data.remove(index - shift);
-				notifyRemoved(index - shift, 1);
-				shift++;
+				final int index = emptySlots.next().intValue() - shift;
+				range = rd.addIndex(index);
+				
+				if (range != null) {
+					for (int i = range.start(); i < range.start() + range.length(); ++i) {
+						data.get(i).unadvise();
+					}
+					notifyRemoving(range.start(), range.length());
+					data.remove(range.start(), range.length());
+					shift += range.length();
+					notifyRemoved(range.start(), range.length());
+				}
+			}
+
+			range = rd.finish();
+			
+			if (range != null) {
+				for (int i = range.start(); i < range.start() + range.length(); ++i) {
+					data.get(i).unadvise();
+				}
+				notifyRemoving(range.start(), range.length());
+				data.remove(range.start(), range.length());
+				notifyRemoved(range.start(), range.length());
 			}
 		}
 		
@@ -186,6 +207,8 @@ final class FilteringReadOnlyObservableList<T>
 
 	@Override
 	protected void onRemoving(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
+		Set<Integer> removedIndexes = new TreeSet<>();
+		
 		for (int i = startIndex; i < startIndex + count; ++i) {
 			final T removedItem = source.getAt(i);
 			ItemContainer container = filteredOutItems.remove(removedItem);
@@ -197,11 +220,39 @@ final class FilteringReadOnlyObservableList<T>
 				int index = indexOfContainer(removedItem);
 				
 				if (index >= 0) {
-					data.get(index).unadvise();
-					notifyRemoving(index, 1);
-					data.remove(index);
-					notifyRemoved(index, 1);
+					removedIndexes.add(index);
 				}
+			}
+		}
+		
+		if (!removedIndexes.isEmpty()) {
+			RangeDetector rd = new RangeDetector();
+			RangeDetector.Range range = null;
+			int shift = 0;
+			
+			for (Integer index : removedIndexes) {
+				range = rd.addIndex(index.intValue() - shift);
+				
+				if (range != null) {
+					for (int i = range.start(); i < range.start() + range.length(); ++i) {
+						data.get(i).unadvise();
+					}
+					notifyRemoving(range.start(), range.length());
+					data.remove(range.start(), range.length());
+					shift += range.length();
+					notifyRemoved(range.start(), range.length());
+				}
+			}
+			
+			range = rd.finish();
+
+			if (range != null) {
+				for (int i = range.start(); i < range.start() + range.length(); ++i) {
+					data.get(i).unadvise();
+				}
+				notifyRemoving(range.start(), range.length());
+				data.remove(range.start(), range.length());
+				notifyRemoved(range.start(), range.length());
 			}
 		}
 	}
