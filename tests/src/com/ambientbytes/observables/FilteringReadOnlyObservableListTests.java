@@ -60,6 +60,7 @@ public class FilteringReadOnlyObservableListTests {
 	
 	@Mock IItemFilter<Integer> mockFilter1;
 	@Mock IItemFilter<Integer> mockFilter2;
+	@Mock IItemFilter<Object> mockObjectFilter;
 	@Mock IListObserver observer;
 	private ReadWriteLock lock;
 	
@@ -459,8 +460,76 @@ public class FilteringReadOnlyObservableListTests {
 		values.add(Integer.valueOf(12));
 		assertContainsAllItems(fol, values);
 	}
+	
+	@Test
+	public void resetResetsContents() {
+		when(mockFilter1.isIn(any(Integer.class))).thenAnswer(new Answer<Boolean>(){
+			@Override
+			public Boolean answer(InvocationOnMock arg0) throws Throwable {
+				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
+			}
+		});
+		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ol.mutator().add(1);
+		ol.mutator().add(50);
+		ol.mutator().add(2);
+		ol.mutator().add(51);
+		ol.mutator().add(3);
+		ol.mutator().add(52);
+		ol.mutator().add(4);
+		ol.mutator().add(53);
+		ol.mutator().add(5);
+		ol.mutator().add(54);
+		ol.mutator().add(56);
+		ol.mutator().add(57);
+		ol.mutator().add(58);
+		ol.mutator().add(59);
+		ol.mutator().add(60);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		fol.addObserver(observer);
+		Collection<Integer> newValues = new ArrayList<>();
+		newValues.add(30);
+		newValues.add(31);
+		newValues.add(32);
+		newValues.add(33);
+		newValues.add(201);
+		newValues.add(202);
+		Collection<Object> testValues = new ArrayList<>();
+		testValues.add(30);
+		testValues.add(31);
+		testValues.add(32);
+		testValues.add(33);
 
-	private static <T> void assertContainsAllItems(IReadOnlyObservableList<T> list, List<Object> items) {
+		ol.mutator().reset(newValues);
+		
+		assertEquals(4, fol.getSize());
+		assertContainsAllItems(fol, testValues);
+	}
+	
+	@Test
+	public void resetResetsUnadvisesObjects() {
+		when(mockObjectFilter.isIn(any())).thenReturn(true);
+		IMutableObject mutable1 = mock(IMutableObject.class);
+		IMutableObject mutable2 = mock(IMutableObject.class);
+		ObservableList<Object> ol = ObservableCollections.createObservableList();
+		ol.mutator().add(mutable1);
+		FilteringReadOnlyObservableList<Object> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockObjectFilter, lock);
+		fol.addObserver(observer);
+		Collection<Object> newValues = new ArrayList<>();
+		newValues.add(mutable2);
+
+		verify(mutable1, times(1)).addObserver(any());
+		verify(mutable1, never()).removeObserver(any());
+		ol.mutator().reset(newValues);
+		
+		assertEquals(1, fol.getSize());
+		assertSame(mutable2, fol.getAt(0));
+		verify(mutable1, times(1)).removeObserver(any());
+		verify(mutable2, times(1)).addObserver(any());
+		verify(mutable2, never()).removeObserver(any());
+	}
+
+	private static <T> void assertContainsAllItems(IReadOnlyObservableList<T> list, Collection<Object> items) {
 		List<Object> copy = new ArrayList<>(items);
 		
 		for (int i = 0; i < list.getSize(); ++i) {
