@@ -22,7 +22,10 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 			this.data.add(mapper.map(source.getAt(i)));
 		}
 		this.sourceObserver = new IListObserver() {
-			@Override public void added(int startIndex, int count) { onAdded(startIndex, count); }
+			@Override public void added(int startIndex, int count)
+			{
+				onAdded(startIndex, count);
+			}
 			@Override public void changing(int startIndex, int count) { /* do nothing */ }
 			@Override public void changed(int startIndex, int count) { onChanged(startIndex, count); }
 			@Override public void removing(int startIndex, int count) { onRemoving(startIndex, count); }
@@ -67,7 +70,9 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		Collection<TMapped> mapped = new ArrayList<>(count);
 		
 		for (int i = 0; i < count; ++i) {
-			mapped.add(mapper.map(source.getAt(startIndex + i)));
+            TSource sourceValue = source.getAt(startIndex + i);
+            TMapped mappedValue = mapper.map(sourceValue);
+			mapped.add(mappedValue);
 		}
 		data.addAll(startIndex, mapped);
 		observers.added(startIndex, count);

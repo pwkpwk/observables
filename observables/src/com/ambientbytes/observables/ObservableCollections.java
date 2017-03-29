@@ -27,4 +27,20 @@ public final class ObservableCollections {
 	public static <T> OrderedObservableList<T> createOrderedObservableList(IReadOnlyObservableList<T> source, IItemsOrder<T> order, ReadWriteLock lock) {
 		return new OrderedObservableList<>(new OrderingReadOnlyObservableList<>(source, order, lock));
 	}
+
+	public static <T> MergingObservableList<T> createMergingObservableList(ReadWriteLock lock) {
+        return new MergingObservableList<>(lock);
+    }
+
+    public static <T> IReadOnlyObservableList<T> createDispatchingObservableList(IReadOnlyObservableList<T> source, IDispatcher dispatcher, ReadWriteLock lock) {
+        return new DispatchingObservableList<>(source, dispatcher, lock);
+    }
+
+    public static <TSource, TMapped> IReadOnlyObservableList<TMapped> createMappingObservableList(IReadOnlyObservableList<TSource> source, IItemMapper<TSource, TMapped> mapper) {
+        return new MappingReadOnlyObservableList<>(source, mapper);
+    }
+
+    public static <T> FilteredObservableList<T> createFilteredObservableList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, ReadWriteLock lock) {
+		return new FilteredObservableList(source, filter, lock);
+	}
 }
