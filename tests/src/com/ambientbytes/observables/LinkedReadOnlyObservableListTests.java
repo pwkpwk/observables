@@ -1,16 +1,20 @@
 package com.ambientbytes.observables;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import java.util.concurrent.locks.ReadWriteLock;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.concurrent.locks.ReadWriteLock;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class LinkedReadOnlyObservableListTests {
 	
@@ -76,8 +80,8 @@ public class LinkedReadOnlyObservableListTests {
 	public void newAddsObserver() {
 		new TestList(mockSource, new DummyReadWriteLock());
 		
-		verify(mockSource, times(1)).addObserver(any());
-		verify(mockSource, never()).removeObserver(any());
+		verify(mockSource, times(1)).addObserver(any(IListObserver.class));
+		verify(mockSource, never()).removeObserver(any(IListObserver.class));
 	}
 
 	@Test

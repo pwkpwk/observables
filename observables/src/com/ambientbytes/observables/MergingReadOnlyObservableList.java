@@ -3,7 +3,6 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T>, IReadOnlyObservableListSet<T> {

@@ -1,19 +1,28 @@
 package com.ambientbytes.observables;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class FilteringReadOnlyObservableListTests {
 	
@@ -518,15 +527,15 @@ public class FilteringReadOnlyObservableListTests {
 		Collection<Object> newValues = new ArrayList<>();
 		newValues.add(mutable2);
 
-		verify(mutable1, times(1)).addObserver(any());
-		verify(mutable1, never()).removeObserver(any());
+		verify(mutable1, times(1)).addObserver(any(IObjectMutationObserver.class));
+		verify(mutable1, never()).removeObserver(any(IObjectMutationObserver.class));
 		ol.mutator().reset(newValues);
 		
 		assertEquals(1, fol.getSize());
 		assertSame(mutable2, fol.getAt(0));
-		verify(mutable1, times(1)).removeObserver(any());
-		verify(mutable2, times(1)).addObserver(any());
-		verify(mutable2, never()).removeObserver(any());
+		verify(mutable1, times(1)).removeObserver(any(IObjectMutationObserver.class));
+		verify(mutable2, times(1)).addObserver(any(IObjectMutationObserver.class));
+		verify(mutable2, never()).removeObserver(any(IObjectMutationObserver.class));
 	}
 
 	private static <T> void assertContainsAllItems(IReadOnlyObservableList<T> list, Collection<Object> items) {

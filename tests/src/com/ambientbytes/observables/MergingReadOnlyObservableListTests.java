@@ -1,12 +1,5 @@
 package com.ambientbytes.observables;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -15,6 +8,20 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class MergingReadOnlyObservableListTests {
 	
@@ -103,8 +110,8 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void removeOnlyListNotifies() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		final MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
@@ -134,7 +141,7 @@ public class MergingReadOnlyObservableListTests {
 		when(integerList1.getSize()).thenReturn(0);
 		mol.add(integerList1);
 		
-		verify(integerList1, times(1)).addObserver(any());
+		verify(integerList1, times(1)).addObserver(any(IListObserver.class));
 	}
 	
 	@Test
@@ -144,7 +151,7 @@ public class MergingReadOnlyObservableListTests {
 		mol.add(integerList1);
 		mol.remove(integerList1);
 		
-		verify(integerList1, times(1)).removeObserver(any());
+		verify(integerList1, times(1)).removeObserver(any(IListObserver.class));
 	}
 
 	@Test
@@ -575,9 +582,9 @@ public class MergingReadOnlyObservableListTests {
 		
 		mol.unlink();
 		
-		verify(integerList1, times(1)).removeObserver(any());
-		verify(integerList2, times(1)).removeObserver(any());
-		verify(integerList3, times(1)).removeObserver(any());
+		verify(integerList1, times(1)).removeObserver(any(IListObserver.class));
+		verify(integerList2, times(1)).removeObserver(any(IListObserver.class));
+		verify(integerList3, times(1)).removeObserver(any(IListObserver.class));
 	}
 	
 	@Test

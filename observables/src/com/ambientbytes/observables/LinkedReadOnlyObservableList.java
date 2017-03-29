@@ -14,54 +14,60 @@ abstract class LinkedReadOnlyObservableList<T> implements ILinkedReadOnlyObserva
 	private final ReadWriteLock lock;
 	private IReadOnlyObservableList<T> source;
 	private IListObserver observer;
+
+	private final class ListObserver implements IListObserver {
+
+		private final IReadOnlyObservableList<T> source;
+
+		public ListObserver(IReadOnlyObservableList<T> source) {
+			this.source = source;
+		}
+
+		@Override
+		public void added(int startIndex, int count) {
+            onAdded(source, startIndex, count);
+		}
+        @Override
+        public void changing(int startIndex, int count) {
+            onChanging(source, startIndex, count);
+        }
+
+        @Override
+        public void changed(int startIndex, int count) {
+            onChanged(source, startIndex, count);
+        }
+
+        @Override
+        public void removing(int startIndex, int count) {
+            onRemoving(source, startIndex, count);
+        }
+
+        @Override
+        public void removed(int startIndex, int count) {
+            onRemoved(source, startIndex, count);
+        }
+
+        @Override
+        public void moved(int oldStartIndex, int newStartIndex, int count) {
+            onMoved(source, oldStartIndex, newStartIndex, count);
+        }
+
+        @Override
+        public void resetting() {
+            onResetting(source);
+        }
+
+        @Override
+        public void reset() {
+            onReset(source);
+        }
+	}
 	
 	protected LinkedReadOnlyObservableList(IReadOnlyObservableList<T> source, ReadWriteLock lock) {
 		this.observers = new ListObservers<T>(lock);
 		this.lock = lock;
 		this.source = source;
-		this.observer = new IListObserver() {
-
-			@Override
-			public void added(int startIndex, int count) {
-				onAdded(source, startIndex, count);
-			}
-			
-			@Override
-			public void changing(int startIndex, int count) {
-				onChanging(source, startIndex, count);
-			}
-			
-			@Override
-			public void changed(int startIndex, int count) {
-				onChanged(source, startIndex, count);
-			}
-
-			@Override
-			public void removing(int startIndex, int count) {
-				onRemoving(source, startIndex, count);
-			}
-			
-			@Override
-			public void removed(int startIndex, int count) {
-				onRemoved(source, startIndex, count);
-			}
-
-			@Override
-			public void moved(int oldStartIndex, int newStartIndex, int count) {
-				onMoved(source, oldStartIndex, newStartIndex, count);
-			}
-			
-			@Override
-			public void resetting() {
-				onResetting(source);
-			}
-
-			@Override
-			public void reset() {
-				onReset(source);
-			}
-			
-		};
+		this.observer = new ListObserver(source);
 		source.addObserver(observer);
 	}
 

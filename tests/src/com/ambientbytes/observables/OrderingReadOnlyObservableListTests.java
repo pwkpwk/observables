@@ -1,13 +1,5 @@
 package com.ambientbytes.observables;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.concurrent.locks.ReadWriteLock;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -16,6 +8,22 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.concurrent.locks.ReadWriteLock;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class OrderingReadOnlyObservableListTests {
 	
@@ -158,13 +166,13 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void removeLowestReportsRemoval() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(5);
 		ol.mutator().add(3);
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(4);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
+		final OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), new IntegerOrder(), lock);
 		ool.addObserver(observer);
 		
 		doAnswer(new Answer<Void>() {
@@ -272,7 +280,7 @@ public class OrderingReadOnlyObservableListTests {
 	
 	@Test
 	public void removeOneOfDuplicatesRemoves() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ObservableList<TestItem> ol = ObservableCollections.createObservableList();
 		final TestItem item = new TestItem(2);
 		ol.mutator().add(new TestItem(1));
 		ol.mutator().add(new TestItem(2));
@@ -282,7 +290,7 @@ public class OrderingReadOnlyObservableListTests {
 		ol.mutator().add(new TestItem(2));
 		ol.mutator().add(new TestItem(4));
 		ol.mutator().add(new TestItem(5));
-		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
+		final OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(ol.list(), new TestOrder(), lock);
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
 				boolean found = false;

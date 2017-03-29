@@ -1,3 +1,4 @@
 bin/
 .recommenders
 .metadata
+.DS_Store

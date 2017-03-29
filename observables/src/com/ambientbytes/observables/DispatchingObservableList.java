@@ -101,7 +101,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	}
 	
 	@Override
-	protected void onRemoving(IReadOnlyObservableList<T> source, int startIndex, int count) {
+	protected void onRemoving(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
 		dispatcher.dispatch(new IAction() {
 			@Override public void execute() {
 				notifyRemoving(startIndex, count);
@@ -116,7 +116,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	}
 
 	@Override
-	protected void onMoved(IReadOnlyObservableList<T> source, int oldStartIndex, int newStartIndex, int count) {
+	protected void onMoved(IReadOnlyObservableList<T> source, final int oldStartIndex, final int newStartIndex, final int count) {
 		dispatcher.dispatch(new IAction() {
 			@Override public void execute() {
 				data.move(oldStartIndex, newStartIndex, count);

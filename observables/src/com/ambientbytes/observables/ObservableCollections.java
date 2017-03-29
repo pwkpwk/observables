@@ -23,4 +23,8 @@ public final class ObservableCollections {
 		MutableObservableList<T> list = new MutableObservableList<>(lock);
 		return new ObservableList<T>(list, list.getMutator());
 	}
+
+	public static <T> OrderedObservableList<T> createOrderedObservableList(IReadOnlyObservableList<T> source, IItemsOrder<T> order, ReadWriteLock lock) {
+		return new OrderedObservableList<>(new OrderingReadOnlyObservableList<>(source, order, lock));
+	}
 }
