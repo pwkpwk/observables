@@ -8,8 +8,6 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.junit.Assert.assertEquals;
@@ -33,14 +31,14 @@ public class PipelineTest {
 	
 	private static class TestViewModel implements IMutableObject {
 
-		private final ReadWriteLock lock;
+		private final IReadWriteMonitor monitor;
 		private Collection<IObjectMutationObserver> observers = new HashSet<>();
 		private final TestModel model;
 		private final IDispatcher dispatcher;
 		private int value;
 		
-		public TestViewModel(ReadWriteLock lock, TestModel model, IDispatcher dispatcher) {
-			this.lock = lock;
+		public TestViewModel(IReadWriteMonitor monitor, TestModel model, IDispatcher dispatcher) {
+			this.monitor = monitor;
 			this.model = model;
 			this.dispatcher = dispatcher;
 			this.value = model.getValue();
@@ -52,7 +50,7 @@ public class PipelineTest {
 
 		@Override
 		public void addObserver(IObjectMutationObserver observer) {
-			final IResource res = LockTool.acquireWriteLock(lock);
+			final IResource res = monitor.acquireWrite();
 			
 			try {
 				observers.add(observer);
@@ -63,7 +61,7 @@ public class PipelineTest {
 
 		@Override
 		public void removeObserver(IObjectMutationObserver observer) {
-			final IResource res = LockTool.acquireWriteLock(lock);
+			final IResource res = monitor.acquireWrite();
 			
 			try {
 				observers.remove(observer);
@@ -80,15 +78,13 @@ public class PipelineTest {
 		}
 		
 		private IObjectMutationObserver[] makeInvocationList() {
-			final Lock l = lock.readLock();
+			final IResource lock = monitor.acquireRead();
 			IObjectMutationObserver[] invocationList;
-			
-			l.lock();
-			
+
 			try {
 				invocationList = observers.toArray(new IObjectMutationObserver[observers.size()]);
 			} finally {
-				l.unlock();
+				lock.release();
 			}
 			
 			return invocationList;
@@ -110,17 +106,17 @@ public class PipelineTest {
 	
 	private static class ModelMapper implements IItemMapper<TestModel, TestViewModel> {
 		
-		private final ReadWriteLock lock;
+		private final IReadWriteMonitor monitor;
 		private final IDispatcher dispatcher;
 		
-		public ModelMapper(ReadWriteLock lock, IDispatcher dispatcher) {
-			this.lock = lock;
+		public ModelMapper(IReadWriteMonitor monitor, IDispatcher dispatcher) {
+			this.monitor = monitor;
 			this.dispatcher = dispatcher;
 		}
 
 		@Override
 		public TestViewModel map(TestModel item) {
-			return new TestViewModel(lock, item, dispatcher);
+			return new TestViewModel(monitor, item, dispatcher);
 		}
 	}
 	
@@ -149,21 +145,21 @@ public class PipelineTest {
 	@Test
 	public void test() {
 		IDispatcher dispatcher = mock(IDispatcher.class);
-		ReadWriteLock lock = new ReentrantReadWriteLock(); 
-		ObservableList<TestModel> models = ObservableCollections.createObservableList(lock);
+		IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(new ReentrantReadWriteLock());
+		ObservableList<TestModel> models = ObservableCollections.createObservableList(monitor);
 		IListMutator<TestModel> mutator = models.mutator();
 		
 		ILinkedReadOnlyObservableList<TestModel> filtered =
-				new FilteringReadOnlyObservableList<>(models.list(), new ModelFilter(), lock);
+				new FilteringReadOnlyObservableList<>(models.list(), new ModelFilter(), monitor);
 		
 		ILinkedReadOnlyObservableList<TestViewModel> mapped =
-				new MappingReadOnlyObservableList<TestModel, TestViewModel>(filtered, new ModelMapper(lock, dispatcher));
+				new MappingReadOnlyObservableList<TestModel, TestViewModel>(filtered, new ModelMapper(monitor, dispatcher), monitor);
 		
 		ILinkedReadOnlyObservableList<TestViewModel> ordering =
-				new OrderingReadOnlyObservableList<>(mapped, new ViewModelOrder(), lock);
+				new OrderingReadOnlyObservableList<>(mapped, new ViewModelOrder(), monitor);
 		
 		ILinkedReadOnlyObservableList<TestViewModel> list =
-				new DispatchingObservableList<>(ordering, dispatcher, lock);
+				new DispatchingObservableList<>(ordering, dispatcher, monitor);
 
 		for (int i = 1; i <= 10000; ++i) {
 			mutator.add(new TestModel(i));

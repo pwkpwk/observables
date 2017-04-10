@@ -7,8 +7,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.any;
@@ -20,8 +18,8 @@ public class LinkedReadOnlyObservableListTests {
 	
 	private static final class TestList extends LinkedReadOnlyObservableList<Integer> {
 
-		protected TestList(IReadOnlyObservableList<Integer> source, ReadWriteLock lock) {
-			super(source, lock);
+		protected TestList(IReadOnlyObservableList<Integer> source, IReadWriteMonitor monitor) {
+			super(source, monitor);
 		}
 
 		@Override
@@ -78,7 +76,7 @@ public class LinkedReadOnlyObservableListTests {
 
 	@Test
 	public void newAddsObserver() {
-		new TestList(mockSource, new DummyReadWriteLock());
+		new TestList(mockSource, new DummyReadWriteMonitor());
 		
 		verify(mockSource, times(1)).addObserver(any(IListObserver.class));
 		verify(mockSource, never()).removeObserver(any(IListObserver.class));
@@ -86,7 +84,7 @@ public class LinkedReadOnlyObservableListTests {
 
 	@Test
 	public void unlinkRemovesObserver() {
-		TestList list = new TestList(mockSource, new DummyReadWriteLock());
+		TestList list = new TestList(mockSource, new DummyReadWriteMonitor());
 		
 		list.unlink();
 		

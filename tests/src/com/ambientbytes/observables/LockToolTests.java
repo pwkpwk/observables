@@ -25,46 +25,50 @@ public class LockToolTests {
 
 	@Test
 	public void acquireReadLockAcquires() {
+		IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(rwLock);
 		when(rwLock.readLock()).thenReturn(lock);
-		
-		LockTool.acquireReadLock(rwLock);
-		
-		verify(rwLock, times(1)).readLock();
-		verify(rwLock, never()).writeLock();
+
+		monitor.acquireRead();
+
 		verify(lock, times(1)).lock();
 		verify(lock, never()).unlock();
+        verify(rwLock, never()).writeLock();
 	}
 
-	@Test
-	public void acquireWriteLockAcquires() {
-		when(rwLock.writeLock()).thenReturn(lock);
-		
-		LockTool.acquireWriteLock(rwLock);
-		
-		verify(rwLock, never()).readLock();
-		verify(rwLock, times(1)).writeLock();
-		verify(lock, times(1)).lock();
-		verify(lock, never()).unlock();
-	}
+    @Test
+    public void releaseReadLockReleases() {
+        IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(rwLock);
+        when(rwLock.readLock()).thenReturn(lock);
 
-	@Test
-	public void releaseReadLockResourceReleasesLock() {
-		when(rwLock.readLock()).thenReturn(lock);
-		IResource resource = LockTool.acquireReadLock(rwLock);
+        monitor.acquireRead().release();
 
-		resource.release();
-		
-		verify(lock, times(1)).unlock();
-	}
+        verify(lock, times(1)).lock();
+        verify(lock, times(1)).unlock();
+        verify(rwLock, never()).writeLock();
+    }
 
-	@Test
-	public void releaseWriteLockResourceReleasesLock() {
-		when(rwLock.writeLock()).thenReturn(lock);
-		IResource resource = LockTool.acquireWriteLock(rwLock);
+    @Test
+    public void acquireWriteLockAcquires() {
+        IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(rwLock);
+        when(rwLock.writeLock()).thenReturn(lock);
 
-		resource.release();
-		
-		verify(lock, times(1)).unlock();
-	}
+        monitor.acquireWrite();
+
+        verify(lock, times(1)).lock();
+        verify(lock, never()).unlock();
+        verify(rwLock, never()).readLock();
+    }
+
+    @Test
+    public void releaseWriteLockReleases() {
+        IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(rwLock);
+        when(rwLock.writeLock()).thenReturn(lock);
+
+        monitor.acquireWrite().release();
+
+        verify(lock, times(1)).lock();
+        verify(lock, times(1)).unlock();
+        verify(rwLock, never()).readLock();
+    }
 
 }

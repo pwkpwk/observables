@@ -10,7 +10,6 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -71,12 +70,12 @@ public class FilteringReadOnlyObservableListTests {
 	@Mock IItemFilter<Integer> mockFilter2;
 	@Mock IItemFilter<Object> mockObjectFilter;
 	@Mock IListObserver observer;
-	private ReadWriteLock lock;
+	private IReadWriteMonitor monitor;
 	
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
-		lock = new DummyReadWriteLock();
+		monitor = new DummyReadWriteMonitor();
 	}
 
 	@Test
@@ -86,7 +85,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		verify(mockFilter1, times(3)).isIn(any(Integer.class));
 		assertEquals(3, fol.getSize());
@@ -99,7 +98,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		verify(mockFilter1, times(3)).isIn(any(Integer.class));
 		assertEquals(0, fol.getSize());
@@ -113,7 +112,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		assertEquals(3, fol.getSize());
 		fol.setFilter(mockFilter2);
@@ -129,7 +128,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		assertEquals(0, fol.getSize());
 		fol.setFilter(mockFilter2);
@@ -141,7 +140,7 @@ public class FilteringReadOnlyObservableListTests {
 	public void permitAllAddItemsAllAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -155,7 +154,7 @@ public class FilteringReadOnlyObservableListTests {
 	public void removePermittedRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -169,7 +168,7 @@ public class FilteringReadOnlyObservableListTests {
 	public void removeDisallowedRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true).thenReturn(false).thenReturn(true);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -183,7 +182,7 @@ public class FilteringReadOnlyObservableListTests {
 	public void removeRangeRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true).thenReturn(false).thenReturn(true);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -197,7 +196,7 @@ public class FilteringReadOnlyObservableListTests {
 	public void permitNoneAddItemsNoneAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(false);
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -210,7 +209,7 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void mutateToAllowedItemAppears() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), lock);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), monitor);
 		TestItem item;
 		
 		ol.mutator().add(new TestItem(1));
@@ -226,7 +225,7 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void mutateToDisallowedItemDisappears() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), lock);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), monitor);
 		TestItem item;
 		
 		ol.mutator().add(new TestItem(1));
@@ -242,7 +241,7 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void mutateRemovedMutationIgnored() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), lock);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), monitor);
 		TestItem item;
 		
 		ol.mutator().add(new TestItem(1));
@@ -259,7 +258,7 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void unlinkNoMoreUpdates() {
 		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), lock);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), new TestFilter(), monitor);
 		TestItem item;
 		
 		ol.mutator().add(new TestItem(1));
@@ -285,7 +284,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 
 		ol.mutator().set(1, 5);
 		
@@ -299,7 +298,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 
 		ol.mutator().set(1, 5);
@@ -327,7 +326,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(52);
 		ol.mutator().add(53);
 		ol.mutator().add(54);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 
 		ol.mutator().set(1, 100);
@@ -356,7 +355,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(52);
 		ol.mutator().add(53);
 		ol.mutator().add(54);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 
 		ol.mutator().set(6, 6);
@@ -391,7 +390,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(58);
 		ol.mutator().add(59);
 		ol.mutator().add(60);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 		Collection<Integer> newValues = new ArrayList<>();
 		newValues.add(6);  // 2
@@ -445,7 +444,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(58);
 		ol.mutator().add(59);
 		ol.mutator().add(60);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 		Collection<Integer> newValues = new ArrayList<>();
 		newValues.add(100); // 2
@@ -494,7 +493,7 @@ public class FilteringReadOnlyObservableListTests {
 		ol.mutator().add(58);
 		ol.mutator().add(59);
 		ol.mutator().add(60);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, lock);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockFilter1, monitor);
 		fol.addObserver(observer);
 		Collection<Integer> newValues = new ArrayList<>();
 		newValues.add(30);
@@ -522,7 +521,7 @@ public class FilteringReadOnlyObservableListTests {
 		IMutableObject mutable2 = mock(IMutableObject.class);
 		ObservableList<Object> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(mutable1);
-		FilteringReadOnlyObservableList<Object> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockObjectFilter, lock);
+		FilteringReadOnlyObservableList<Object> fol = new FilteringReadOnlyObservableList<>(ol.list(), mockObjectFilter, monitor);
 		fol.addObserver(observer);
 		Collection<Object> newValues = new ArrayList<>();
 		newValues.add(mutable2);

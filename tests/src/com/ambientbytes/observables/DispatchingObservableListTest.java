@@ -12,7 +12,6 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -49,13 +48,13 @@ public class DispatchingObservableListTest {
 	@Mock IListObserver observer;	
 	@Captor ArgumentCaptor<IAction> actionCaptor;
 	@Captor ArgumentCaptor<Collection<Integer>> collectionCaptor;
-	private ReadWriteLock lock;
+	private IReadWriteMonitor monitor;
 	private TestDispatcher testDispatcher;
 	
 	@Before
 	public void setUp() {
 		MockitoAnnotations.initMocks(this);
-		lock = new DummyReadWriteLock();
+		monitor = new DummyReadWriteMonitor();
 		testDispatcher = new TestDispatcher();
 	}
 
@@ -63,7 +62,7 @@ public class DispatchingObservableListTest {
 	public void newDispatchingObservableListCopiesData() {
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
 		mol.mutator().add(Integer.valueOf(10));
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 
 		assertEquals(1, testDispatcher.executeAll());
 		assertEquals(1, dol.getSize());
@@ -73,7 +72,7 @@ public class DispatchingObservableListTest {
 	@Test
 	public void addToSourceDispatchesUpdate() {
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 		assertEquals(0, testDispatcher.executeAll());
 		
 		mol.mutator().add(Integer.valueOf(10));
@@ -87,7 +86,7 @@ public class DispatchingObservableListTest {
 	public void addToSourceNotifies() {
 		IDispatcher dispatcher = mock(IDispatcher.class);
 		ObservableList<Integer> mol = ObservableCollections.createObservableList();
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().add(Integer.valueOf(10));
@@ -106,7 +105,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 		assertEquals(1, testDispatcher.executeAll());
 		
 		mol.mutator().remove(1, 5);
@@ -123,7 +122,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().remove(1, 5);
@@ -144,7 +143,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(1, 5, 3);
@@ -165,7 +164,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(1, 3, 5);
@@ -186,7 +185,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(6, 0, 3);
@@ -207,7 +206,7 @@ public class DispatchingObservableListTest {
 		for (int i = 0; i < 10; ++i) {
 			mol.mutator().add(Integer.valueOf(i));
 		}
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().move(2, 0, 3);
@@ -231,7 +230,7 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, lock);
+		DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), dispatcher, monitor);
 		dol.addObserver(observer);
 		
 		mol.mutator().reset(newValues);
@@ -255,7 +254,7 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 		dol.addObserver(observer);
 		assertEquals(1, testDispatcher.executeAll());
 		final List<Integer> capturedValues = new ArrayList<>();
@@ -286,7 +285,7 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 		assertEquals(1, testDispatcher.executeAll());
 		
 		mol.mutator().set(1, newValues);
@@ -306,7 +305,7 @@ public class DispatchingObservableListTest {
 		List<Integer> newValues = new ArrayList<>();
 		newValues.add(20);
 		newValues.add(21);
-		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, lock);
+		final DispatchingObservableList<Integer> dol = new DispatchingObservableList<Integer>(mol.list(), testDispatcher, monitor);
 		assertEquals(1, testDispatcher.executeAll());
 		dol.addObserver(observer);
 		doAnswer(new Answer<Void>(){

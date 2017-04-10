@@ -39,14 +39,14 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void newMergingReadOnlyObservableListCorrectSetup() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		
 		assertEquals(0, mol.getSize());
 	}
 
 	@Test
 	public void addOneListCopiesData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -64,7 +64,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void addOneListNotifies() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -80,7 +80,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void addSameListTwiceThrows() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -94,7 +94,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void removeOnlyListClearsData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -110,7 +110,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void removeOnlyListNotifies() {
-		final MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		final MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);
@@ -137,7 +137,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void addListAddsObserver() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		when(integerList1.getSize()).thenReturn(0);
 		mol.add(integerList1);
 		
@@ -146,7 +146,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void removeListRemovesObserver() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		when(integerList1.getSize()).thenReturn(0);
 		mol.add(integerList1);
 		mol.remove(integerList1);
@@ -156,7 +156,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void addThreeListsCopiesData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -199,7 +199,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void removeMiddleRemovesData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -239,7 +239,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void moveMiddleMovesData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -282,7 +282,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void moveMiddleMoveReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -313,7 +313,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleDownResetReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -348,7 +348,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleDownResets() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -395,7 +395,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleUpResetReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -435,7 +435,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleUpResets() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -487,7 +487,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleSameSizeResetReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -525,7 +525,7 @@ public class MergingReadOnlyObservableListTests {
 
 	@Test
 	public void resetMiddleSameSizeResets() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -575,7 +575,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void unlinkRemovesAllObservers() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		mol.add(integerList1);
 		mol.add(integerList2);
 		mol.add(integerList3);
@@ -589,7 +589,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addToFirstAdded() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -621,7 +621,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addToFirstReports() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -652,7 +652,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addToMiddleAdded() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -684,7 +684,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addCollectionToMiddleAdded() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -722,7 +722,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addToMiddleReports() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -753,7 +753,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void addRemoveMiddleOriginalData() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -786,7 +786,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void removeMiddleReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -821,7 +821,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void setOneMiddleReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);
@@ -854,7 +854,7 @@ public class MergingReadOnlyObservableListTests {
 	
 	@Test
 	public void setCollectionMiddleReported() {
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteLock());
+		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(new DummyReadWriteMonitor());
 		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
 		ol1.mutator().add(11);
 		ol1.mutator().add(12);

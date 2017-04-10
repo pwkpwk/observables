@@ -47,7 +47,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		ol.mutator().add(3);
 		
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		
 		assertEquals(ol.list().getSize(), mol.getSize());
 		int index = 0;
@@ -59,7 +59,7 @@ public class MappingReadOnlyObservableListTests {
 	@Test
 	public void addToSourceAddsMappedItems() {
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 
 		ol.mutator().add(1);
@@ -80,7 +80,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(1);
 		ol.mutator().add(2);
 		ol.mutator().add(3);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
 		ol.mutator().remove(0, 2);
@@ -105,7 +105,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
 		ol.mutator().move(0, 4, 2);
@@ -129,7 +129,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
 		ol.mutator().move(0, 2, 5);
@@ -153,7 +153,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
 		ol.mutator().move(3, 0, 2);
@@ -177,7 +177,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
 		ol.mutator().move(1, 0, 7);
@@ -201,7 +201,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(5);
 		ol.mutator().add(6);
 		ol.mutator().add(7);
-		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		Collection<Integer> newSourceValues = new ArrayList<>();
 		newSourceValues.add(10);
@@ -235,7 +235,7 @@ public class MappingReadOnlyObservableListTests {
 	@Test
 	public void unlinkNoMoreUpdates() {
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		mol.unlink();
 		
@@ -262,7 +262,7 @@ public class MappingReadOnlyObservableListTests {
 		ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(0);
 		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper, new DummyReadWriteMonitor());
 		
 		verify(mockMapper, times(1)).map(eq(Integer.valueOf(0)));
 		ol.mutator().set(0, 10);
@@ -279,7 +279,7 @@ public class MappingReadOnlyObservableListTests {
 		ol.mutator().add(2);
 		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
 		when(mockMapper.map(eq(Integer.valueOf(1)))).thenReturn("1");
-		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper);
+		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper, new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		doAnswer(new Answer<Void>() {
 			@Override
