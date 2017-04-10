@@ -16,7 +16,7 @@ interface IRandomAccess<T> {
 	/**
 	 * Get the element at the specified zero-based index.
 	 * @param index zero-based index of the element to retrieve.
-	 * @return
+	 * @return item at the specified index.
 	 */
 	T get(int index);
 }

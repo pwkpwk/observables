@@ -1,7 +1,5 @@
 package com.ambientbytes.observables;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 public final class ObservableCollections {
 
 	/**
@@ -9,8 +7,8 @@ public final class ObservableCollections {
 	 * @return A new ObservableList<T> with non-null list and mutator properties.
 	 */
 	public static <T> ObservableList<T> createObservableList() {
-		MutableObservableList<T> list = new MutableObservableList<>(new DummyReadWriteLock());
-		return new ObservableList<T>(list, list.getMutator());
+		MutableObservableList<T> list = new MutableObservableList<>(new DummyReadWriteMonitor());
+		return new ObservableList<>(list, list.getMutator());
 	}
 	
 	/**
@@ -19,28 +17,37 @@ public final class ObservableCollections {
 	 * all mutation events while holding the write lock.
 	 * @return A new ObservableList<T> with non-null list and mutator properties.
 	 */
-	public static <T> ObservableList<T> createObservableList(ReadWriteLock lock) {
-		MutableObservableList<T> list = new MutableObservableList<>(lock);
-		return new ObservableList<T>(list, list.getMutator());
+	public static <T> ObservableList<T> createObservableList(IReadWriteMonitor monitor) {
+		MutableObservableList<T> list = new MutableObservableList<>(monitor);
+		return new ObservableList<>(list, list.getMutator());
 	}
 
-	public static <T> OrderedList<T> createOrderedObservableList(IReadOnlyObservableList<T> source, IItemsOrder<T> order, ReadWriteLock lock) {
-		return new OrderedList<>(new OrderingReadOnlyObservableList<>(source, order, lock));
+	public static <T> OrderedList<T> createOrderedObservableList(
+	        IReadOnlyObservableList<T> source,
+            IItemsOrder<T> order,
+            IReadWriteMonitor monitor) {
+		return new OrderedList<>(new OrderingReadOnlyObservableList<>(source, order, monitor));
 	}
 
-	public static <T> MergingList<T> createMergingObservableList(ReadWriteLock lock) {
-        return new MergingList<>(lock);
+	public static <T> MergingList<T> createMergingObservableList(IReadWriteMonitor monitor) {
+        return new MergingList<>(monitor);
     }
 
-    public static <T> IReadOnlyObservableList<T> createDispatchingObservableList(IReadOnlyObservableList<T> source, IDispatcher dispatcher, ReadWriteLock lock) {
-        return new DispatchingObservableList<>(source, dispatcher, lock);
+    public static <T> IReadOnlyObservableList<T> createDispatchingObservableList(
+            IReadOnlyObservableList<T> source,
+            IDispatcher dispatcher,
+            IReadWriteMonitor monitor) {
+        return new DispatchingObservableList<>(source, dispatcher, monitor);
     }
 
-    public static <TSource, TMapped> IReadOnlyObservableList<TMapped> createMappingObservableList(IReadOnlyObservableList<TSource> source, IItemMapper<TSource, TMapped> mapper) {
-        return new MappingReadOnlyObservableList<>(source, mapper);
+    public static <TSource, TMapped> IReadOnlyObservableList<TMapped> createMappingObservableList(
+    		IReadOnlyObservableList<TSource> source,
+			IItemMapper<TSource, TMapped> mapper,
+			IReadWriteMonitor monitor) {
+        return new MappingReadOnlyObservableList<>(source, mapper, monitor);
     }
 
-    public static <T> FilteredList<T> createFilteredObservableList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, ReadWriteLock lock) {
-		return new FilteredList(source, filter, lock);
+    public static <T> FilteredList<T> createFilteredObservableList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, IReadWriteMonitor monitor) {
+		return new FilteredList<>(source, filter, monitor);
 	}
 }

@@ -10,8 +10,8 @@ package com.ambientbytes.observables;
 public interface IItemMapper<TSource, TMapped> {
 	/**
 	 * Map an item of the source type to an item of the mapped type.
-	 * @param item
-	 * @return
+	 * @param item item to be mapped
+	 * @return mapped value for the item.
 	 */
 	TMapped map(TSource item);
 }

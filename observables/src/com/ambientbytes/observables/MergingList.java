@@ -1,17 +1,15 @@
 package com.ambientbytes.observables;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 /**
- * @Author Pavel Karpenko
+ * @author Pavel Karpenko
  */
 
 public final class MergingList<T> implements IObservableListContainer<T> {
 
     private final MergingReadOnlyObservableList<T> list;
 
-    public MergingList(ReadWriteLock lock) {
-        this.list = new MergingReadOnlyObservableList<>(lock);
+    MergingList(IReadWriteMonitor monitor) {
+        this.list = new MergingReadOnlyObservableList<>(monitor);
     }
 
     @Override

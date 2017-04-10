@@ -3,24 +3,23 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
 
 final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T> {
 
 	private final IDispatcher dispatcher;
 	private final ArrayListEx<T> data;
 		
-	public DispatchingObservableList(
+	DispatchingObservableList(
 			IReadOnlyObservableList<T> source,
 			IDispatcher dispatcher,
-			ReadWriteLock lock) {
-		super(source, lock);
+			IReadWriteMonitor monitor) {
+		super(source, monitor);
 		int size = source.getSize();
 
 		this.dispatcher = dispatcher;
-		this.data = new ArrayListEx<T>(source.getSize());
+		this.data = new ArrayListEx<>(source.getSize());
 		
-		final IResource res = LockTool.acquireReadLock(lock);
+		final IResource lock = monitor.acquireRead();
 		final Collection<T> initialData = new ArrayList<>(source.getSize());
 		final boolean dispatch;
 
@@ -30,7 +29,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 			}
 			dispatch = initialData.size() > 0;
 		} finally {
-			res.release();
+			lock.release();
 		}
 
 		if (dispatch) {
@@ -60,7 +59,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 
 	@Override
 	protected void onAdded(IReadOnlyObservableList<T> source, final int startIndex, final int count) {
-		final List<T> addedItems = new ArrayList<T>(count);
+		final List<T> addedItems = new ArrayList<>(count);
 		
 		for (int i = startIndex; i < startIndex + count; ++i) {
 			addedItems.add(source.getAt(i));
@@ -137,7 +136,7 @@ final class DispatchingObservableList<T> extends LinkedReadOnlyObservableList<T>
 	@Override
 	protected void onReset(IReadOnlyObservableList<T> source) {
 		int size = source.getSize();
-		final List<T> newItems = new ArrayList<T>(size);
+		final List<T> newItems = new ArrayList<>(size);
 		
 		for (int i = 0; i < size; ++i) {
 			newItems.add(source.getAt(i));

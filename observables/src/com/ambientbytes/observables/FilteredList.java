@@ -1,17 +1,16 @@
 package com.ambientbytes.observables;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 /**
- * Created by pakarpen on 3/29/17.
+ * Combination of a read-only observable list and a filter predicate that filters out items from the source list.
+ * @author Pavel Karpenko
  */
 
 public final class FilteredList<T> implements IObservableListContainer<T> {
 
     private final FilteringReadOnlyObservableList<T> list;
 
-    public FilteredList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, ReadWriteLock lock) {
-        this.list = new FilteringReadOnlyObservableList<>(source, filter, lock);
+    FilteredList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, IReadWriteMonitor monitor) {
+        this.list = new FilteringReadOnlyObservableList<>(source, filter, monitor);
     }
 
     @Override
@@ -19,7 +18,7 @@ public final class FilteredList<T> implements IObservableListContainer<T> {
         return list;
     }
 
-    public IItemFilterContainer<T> filters() {
+    public IItemFilterContainer<T> filter() {
         return list;
     }
 }

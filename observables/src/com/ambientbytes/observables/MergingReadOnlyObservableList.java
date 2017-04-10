@@ -3,23 +3,22 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.ReadWriteLock;
 
 final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T>, IReadOnlyObservableListSet<T> {
 	
-	private final ReadWriteLock lock;
+	private final IReadWriteMonitor monitor;
 	private final ListObservers<T> observers;
 	private final List<ListInfo> lists;
 	private final ArrayListEx<T> data;
 	
-	private final class ListChange {
+	private final static class ListChange {
 		private final int oldSize;
 		
-		public ListChange(int oldSize) {
+		ListChange(int oldSize) {
 			this.oldSize = oldSize;
 		}
 		
-		public int getOldSize() {
+		int getOldSize() {
 			return oldSize;
 		}
 	}
@@ -38,7 +37,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		private int offset;	// index of the first element of the list in the "data" collection
 		private ListChange pendingChange;
 		
-		public ListInfo(IReadOnlyObservableList<T> list, int index, int offset) {
+		ListInfo(IReadOnlyObservableList<T> list, int index, int offset) {
 			this.list = list;
 			this.list.addObserver(this);
 			this.index = index;
@@ -46,15 +45,15 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			this.pendingChange = null;
 		}
 		
-		public void unlink() {
+		void unlink() {
 			list.removeObserver(this);
 		}
 		
-		public boolean hasList(IReadOnlyObservableList<T> list) {
+		boolean hasList(IReadOnlyObservableList<T> list) {
 			return this.list == list;
 		}
 		
-		public int removeData() {
+		int removeData() {
 			//
 			// Remove all items of the ListInfo from the merged list.
 			//
@@ -67,12 +66,12 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 			return length;
 		}
 		
-		public void shiftBack(int indexShift, int itemCount) {
+		void shiftBack(int indexShift, int itemCount) {
 			offset -= itemCount;
 			index -= indexShift;
 		}
 		
-		public void shiftForward(int indexShift, int itemCount) {
+		void shiftForward(int indexShift, int itemCount) {
 			offset += itemCount;
 			index += indexShift;
 		}
@@ -169,9 +168,9 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 	}
 	
-	public MergingReadOnlyObservableList(ReadWriteLock lock) {
-		this.lock = lock;
-		this.observers = new ListObservers<>(lock);
+	MergingReadOnlyObservableList(IReadWriteMonitor monitor) {
+		this.monitor = monitor;
+		this.observers = new ListObservers<>(monitor);
 		this.lists = new ArrayList<>();
 		this.data = new ArrayListEx<>();
 	}
@@ -198,7 +197,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 	@Override
 	public void add(IReadOnlyObservableList<T> list) {
-		IResource res = LockTool.acquireWriteLock(lock);
+		IResource res = monitor.acquireWrite();
 		
 		try {
 			for (ListInfo listInfo : lists) {
@@ -226,7 +225,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 	@Override
 	public void remove(IReadOnlyObservableList<T> list) {
-		IResource res = LockTool.acquireWriteLock(lock);
+		IResource res = monitor.acquireWrite();
 		
 		try {
 			int i = 0;
@@ -255,7 +254,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 
 	@Override
 	public void unlink() {
-		IResource res = LockTool.acquireWriteLock(lock);
+		IResource res = monitor.acquireWrite();
 		
 		try {
 			for (ListInfo list : lists) {

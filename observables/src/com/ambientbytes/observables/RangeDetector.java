@@ -1,10 +1,10 @@
 package com.ambientbytes.observables;
 
-public final class RangeDetector {
+final class RangeDetector {
 	
 	private Range currentRange;
 	
-	public static final class Range {
+	static final class Range {
 		private int start;
 		private int length;
 		
@@ -13,7 +13,7 @@ public final class RangeDetector {
 			this.length = 1;
 		}
 		
-		public int start() {
+		int start() {
 			return start;
 		}
 		
@@ -21,7 +21,7 @@ public final class RangeDetector {
 			return length;
 		}
 		
-		public boolean addIndex(int index) {
+		boolean addIndex(int index) {
 			boolean added = index == start + length;
 			
 			if (added) {
@@ -36,7 +36,7 @@ public final class RangeDetector {
 		}
 	}
 
-	public RangeDetector() {
+	RangeDetector() {
 		this.currentRange = null;
 	}
 	

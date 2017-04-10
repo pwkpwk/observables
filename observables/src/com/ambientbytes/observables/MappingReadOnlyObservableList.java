@@ -11,10 +11,11 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 	private IListObserver sourceObserver;
 	private IReadOnlyObservableList<TSource> source;
 
-	public MappingReadOnlyObservableList(
+	MappingReadOnlyObservableList(
 			IReadOnlyObservableList<TSource> source,
-			IItemMapper<TSource, TMapped> mapper) {
-		this.observers = new ListObservers<TMapped>(new DummyReadWriteLock());
+			IItemMapper<TSource, TMapped> mapper,
+            IReadWriteMonitor monitor) {
+		this.observers = new ListObservers<>(monitor);
 		this.mapper = mapper;
 		this.data = new ArrayListEx<>(source.getSize());
 		this.source = source;
@@ -66,7 +67,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		}
 	}
 	
-	private final void onAdded(int startIndex, int count) {
+	private void onAdded(int startIndex, int count) {
 		Collection<TMapped> mapped = new ArrayList<>(count);
 		
 		for (int i = 0; i < count; ++i) {
@@ -78,7 +79,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		observers.added(startIndex, count);
 	}
 	
-	private final void onChanged(int startIndex, int count) {
+	private void onChanged(int startIndex, int count) {
 		observers.changing(startIndex, count);
 		for (int i = startIndex; i < startIndex + count; ++i) {
 			data.set(i, mapper.map(source.getAt(i)));
@@ -86,13 +87,13 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		observers.changed(startIndex, count);
 	}
 	
-	private final void onRemoving(int startIndex, int count) {
+	private void onRemoving(int startIndex, int count) {
 		observers.removing(startIndex, count);
 		data.remove(startIndex, count);
 		observers.removed(startIndex, count);
 	}
 	
-	private final void onMoved(int oldStartIndex, int newStartIndex, int count) {
+	private void onMoved(int oldStartIndex, int newStartIndex, int count) {
 		final int low, pivot, high;
 		
 		if (oldStartIndex < newStartIndex) {
@@ -112,11 +113,11 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		observers.moved(oldStartIndex, newStartIndex, count);
 	}
 	
-	private final void onResetting() {
+	private void onResetting() {
 		observers.resetting();
 	}
 	
-	private final void onReset() {
+	private void onReset() {
 		final int size = source.getSize();
 		
 		data.clear();
@@ -126,7 +127,7 @@ final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedRe
 		observers.reset();
 	}
 	
-	private final void reverseRange(int low, int high) {
+	private void reverseRange(int low, int high) {
 		if (high - low > 1) {
 			int l = low;
 			int h = high - 1;

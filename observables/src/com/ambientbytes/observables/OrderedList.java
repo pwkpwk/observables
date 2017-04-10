@@ -1,7 +1,7 @@
 package com.ambientbytes.observables;
 
 /**
- * @Author Pavel Karpenko
+ * @author Pavel Karpenko
  */
 
 public final class OrderedList<T> implements IObservableListContainer<T> {

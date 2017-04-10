@@ -3,20 +3,19 @@ package com.ambientbytes.observables;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.locks.ReadWriteLock;
 
 final class ListObservers<T> implements IListObserver {
 	
-	private final ReadWriteLock lock;
+	private final IReadWriteMonitor monitor;
 	private final Set<IListObserver> observers;
 	
-	public ListObservers(final ReadWriteLock lock) {
-		this.lock = lock;
-		this.observers = new HashSet<IListObserver>();
+	ListObservers(final IReadWriteMonitor monitor) {
+		this.monitor = monitor;
+		this.observers = new HashSet<>();
 	}
 	
 	public void add(IListObserver observer) {
-		final IResource l = LockTool.acquireWriteLock(lock);
+		final IResource l = monitor.acquireWrite();
 		
 		try {
 			if (!observers.add(observer)) {
@@ -28,7 +27,7 @@ final class ListObservers<T> implements IListObserver {
 	}
 	
 	public void remove(IListObserver observer) {
-		final IResource l = LockTool.acquireWriteLock(lock);
+		final IResource l = monitor.acquireWrite();
 		
 		try {
 			observers.remove(observer);
@@ -95,10 +94,10 @@ final class ListObservers<T> implements IListObserver {
 	
 	private Iterable<IListObserver> makeInvocationList() {
 		Iterable<IListObserver> iterable;
-		final IResource l = LockTool.acquireReadLock(lock);
+		final IResource l = monitor.acquireRead();
 		
 		try {
-			iterable = new ArrayList<IListObserver>(observers);
+			iterable = new ArrayList<>(observers);
 		} finally {
 			l.release();
 		}

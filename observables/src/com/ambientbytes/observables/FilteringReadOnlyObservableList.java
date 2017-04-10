@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.locks.ReadWriteLock;
 
 final class FilteringReadOnlyObservableList<T>
 		extends LinkedReadOnlyObservableList<T>
@@ -53,8 +52,8 @@ final class FilteringReadOnlyObservableList<T>
 	public FilteringReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
 			IItemFilter<T> filter,
-			ReadWriteLock lock) {
-		super(source, lock);
+			IReadWriteMonitor monitor) {
+		super(source, monitor);
 		this.data = new ArrayListEx<ItemContainer>(source.getSize());
 		this.filteredOutItems = new HashMap<T, ItemContainer>();
 		this.filter = filter;
@@ -324,7 +323,7 @@ final class FilteringReadOnlyObservableList<T>
 		// to be synchronized by the same lock (all collections in the pipeline are supposed
 		// to share a single lock).
 		//
-		IResource res = LockTool.acquireWriteLock(lock());
+		IResource res = monitor().acquireWrite();
 		
 		try {
 			if (filter.isIn(item)) {

@@ -1,11 +1,10 @@
 package com.ambientbytes.observables;
 
 import java.util.Collection;
-import java.util.concurrent.locks.ReadWriteLock;
 
 class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 	
-	private final ReadWriteLock lock;
+	private final IReadWriteMonitor monitor;
 	private final ArrayListEx<T> data;
 	private final ListObservers<T> observers;
 	private final IListMutator<T> mutator;
@@ -14,7 +13,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void add(T value) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				insertUnsafe(data.size(), value);
@@ -25,7 +24,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 
 		@Override
 		public final void add(int index, T value) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				insertUnsafe(index, value);
@@ -36,7 +35,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void add(int index, Collection<T> values) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				insertUnsafe(index, values);
@@ -47,7 +46,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void set(int index, T value) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				setUnsafe(index, value);
@@ -58,7 +57,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void set(int index, Collection<T> values) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				setUnsafe(index, values);
@@ -69,7 +68,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 
 		@Override
 		public final int remove(int index, int count) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			final int length;
 			
 			try {
@@ -83,7 +82,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 
 		@Override
 		public final void clear() {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				clearUnsafe();
@@ -94,7 +93,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 
 		@Override
 		public final void move(int startIndex, int newIndex, int count) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				moveUnsafe(startIndex, newIndex, count);
@@ -105,7 +104,7 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		
 		@Override
 		public final void reset(Collection<T> newItems) {
-			IResource res = LockTool.acquireWriteLock(lock);
+			IResource res = monitor.acquireWrite();
 			
 			try {
 				resetUnsafe(newItems);
@@ -197,14 +196,14 @@ class MutableObservableList<T> implements IReadOnlyObservableList<T> {
 		}
 	}
 	
-	public MutableObservableList(final ReadWriteLock lock) {
-		if (lock == null) {
+	public MutableObservableList(final IReadWriteMonitor monitor) {
+		if (monitor == null) {
 			throw new IllegalArgumentException("lock cannot be null");
 		}
 		
-		this.lock = lock;
+		this.monitor = monitor;
 		this.data = new ArrayListEx<T>();
-		this.observers = new ListObservers<T>(lock);
+		this.observers = new ListObservers<T>(monitor);
 		this.mutator = new Mutator();
 	}
 	
