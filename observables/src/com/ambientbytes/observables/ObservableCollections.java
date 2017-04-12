@@ -22,32 +22,7 @@ public final class ObservableCollections {
 		return new ObservableList<>(list, list.getMutator());
 	}
 
-	public static <T> OrderedList<T> createOrderedObservableList(
-	        IReadOnlyObservableList<T> source,
-            IItemsOrder<T> order,
-            IReadWriteMonitor monitor) {
-		return new OrderedList<>(new OrderingReadOnlyObservableList<>(source, order, monitor));
-	}
-
 	public static <T> MergingList<T> createMergingObservableList(IReadWriteMonitor monitor) {
         return new MergingList<>(monitor);
     }
-
-    public static <T> IReadOnlyObservableList<T> createDispatchingObservableList(
-            IReadOnlyObservableList<T> source,
-            IDispatcher dispatcher,
-            IReadWriteMonitor monitor) {
-        return new DispatchingObservableList<>(source, dispatcher, monitor);
-    }
-
-    public static <TSource, TMapped> IReadOnlyObservableList<TMapped> createMappingObservableList(
-    		IReadOnlyObservableList<TSource> source,
-			IItemMapper<TSource, TMapped> mapper,
-			IReadWriteMonitor monitor) {
-        return new MappingReadOnlyObservableList<>(source, mapper, monitor);
-    }
-
-    public static <T> FilteredList<T> createFilteredObservableList(IReadOnlyObservableList<T> source, IItemFilter<T> filter, IReadWriteMonitor monitor) {
-		return new FilteredList<>(source, filter, monitor);
-	}
 }

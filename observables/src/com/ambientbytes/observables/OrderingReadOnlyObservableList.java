@@ -10,12 +10,11 @@ import java.util.Comparator;
  *
  * @param <T> type of the list item.
  */
-final class OrderingReadOnlyObservableList<T>
-				extends LinkedReadOnlyObservableList<T>
-				implements IItemsOrderContainer<T> {
+final class OrderingReadOnlyObservableList<T> extends LinkedReadOnlyObservableList<T> {
 
 	private final ArrayListEx<ItemContainer> data;
-	private IItemsOrder<T> order;
+	private final IObservableReference<IItemsOrder<T>> order;
+	private final IReferenceListener<IItemsOrder<T>> orderListener;
 	
 	private final class ItemContainer implements IObjectMutationObserver {
 		private final T item;
@@ -56,11 +55,18 @@ final class OrderingReadOnlyObservableList<T>
 	 */
 	public OrderingReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
-			IItemsOrder<T> order,
+			IObservableReference<IItemsOrder<T>> order,
 			IReadWriteMonitor monitor) {
 		super(source, monitor);
 		this.data = new ArrayListEx<>(source.getSize());
 		this.order = order;
+		this.orderListener = new IReferenceListener<IItemsOrder<T>>() {
+			@Override
+			public void changed(IObservableReference<IItemsOrder<T>> sender, IItemsOrder<T> oldValue) {
+				setOrder(sender.getValue());
+			}
+		};
+		this.order.addListener(this.orderListener);
 
 		IResource res = monitor.acquireRead();
 		
@@ -70,7 +76,7 @@ final class OrderingReadOnlyObservableList<T>
 			for (int i = 0; i < size; ++i) {
 				this.data.add(new ItemContainer(source.getAt(i)));
 			}
-			Collections.sort(this.data, makeComparator(order));
+			Collections.sort(this.data, makeComparator(order.getValue()));
 		} finally {
 			res.release();
 		}
@@ -86,16 +92,9 @@ final class OrderingReadOnlyObservableList<T>
 		return data.size();
 	}
 
-	@Override
-	public IItemsOrder<T> getOrder() {
-		return order;
-	}
-
-	@Override
-	public void setOrder(IItemsOrder<T> order) {
+	private void setOrder(IItemsOrder<T> order) {
 		if (this.order != order) {
 			notifyResetting();
-			this.order = order;
 			Collections.sort(this.data, makeComparator(order));
 			notifyReset();
 		}
@@ -162,7 +161,7 @@ final class OrderingReadOnlyObservableList<T>
 		for (int i = 0; i < source.getSize(); ++i) {
 			data.add(new ItemContainer(source.getAt(i)));
 		}
-		Collections.sort(data, makeComparator(order));
+		Collections.sort(data, makeComparator(order.getValue()));
 		notifyReset();
 	}
 	
@@ -220,8 +219,9 @@ final class OrderingReadOnlyObservableList<T>
 	private int indexOfItem(T item) {
 		IRandomAccess<ItemContainer> access = new ListRandomAccess<>(data);
 		int index = indexOfFirstGreaterOrEqualItem(access, item);
+        IItemsOrder<T> itemsOrder = order.getValue();
 		
-		while (index < data.size() && !order.isLess(data.get(index).item(), item)) {
+		while (index < data.size() && !itemsOrder.isLess(data.get(index).item(), item)) {
 			if (data.get(index).item() == item) {
 				break;
 			} else {
@@ -262,11 +262,12 @@ final class OrderingReadOnlyObservableList<T>
 		//
 		int left = -1;
 		int right = dataAccess.size();
+        IItemsOrder<T> itemsOrder = order.getValue();
 		
 		while (left + 1 != right) {
 			int middle = left + (right - left) / 2;
 			
-			if (order.isLess(dataAccess.get(middle).item(), item)) {
+			if (itemsOrder.isLess(dataAccess.get(middle).item(), item)) {
 				left = middle;
 			} else {
 				right = middle;

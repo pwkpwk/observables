@@ -8,13 +8,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-final class FilteringReadOnlyObservableList<T>
-		extends LinkedReadOnlyObservableList<T>
-		implements IItemFilterContainer<T> {
+final class FilteringReadOnlyObservableList<T> extends LinkedReadOnlyObservableList<T> {
 	
 	private final ArrayListEx<ItemContainer> data;
 	private final Map<T, ItemContainer> filteredOutItems;
-	private IItemFilter<T> filter;
+	private final IObservableReference<IItemFilter<T>> filterRef;
+    private final IReferenceListener<IItemFilter<T>> filterListener;
 	private Set<Integer> pendingChange;
 	
 	private final class ItemContainer implements IObjectMutationObserver {
@@ -51,16 +50,23 @@ final class FilteringReadOnlyObservableList<T>
 
 	public FilteringReadOnlyObservableList(
 			IReadOnlyObservableList<T> source,
-			IItemFilter<T> filter,
+            IObservableReference<IItemFilter<T>> filter,
 			IReadWriteMonitor monitor) {
 		super(source, monitor);
-		this.data = new ArrayListEx<ItemContainer>(source.getSize());
+
+        final int size = source.getSize();
+		this.data = new ArrayListEx<ItemContainer>(size);
 		this.filteredOutItems = new HashMap<T, ItemContainer>();
-		this.filter = filter;
 		this.pendingChange = null;
-		
-		int size = source.getSize();
-		
+        this.filterListener = new IReferenceListener<IItemFilter<T>>() {
+            @Override
+            public void changed(IObservableReference<IItemFilter<T>> sender, IItemFilter<T> oldValue) {
+                setFilter(sender.getValue());
+            }
+        };
+        this.filterRef = filter;
+        this.filterRef.addListener(filterListener);
+
 		for (int i = 0; i < size; ++i) {
 			addItem(source.getAt(i));
 		}
@@ -78,6 +84,7 @@ final class FilteringReadOnlyObservableList<T>
 
 	@Override
 	protected void onUnlinked() {
+        filterRef.removeListener(filterListener);
 		removeMutableObserverFromItems(data);
 		removeMutableObserverFromItems(filteredOutItems.values());
 		filteredOutItems.clear();
@@ -130,6 +137,7 @@ final class FilteringReadOnlyObservableList<T>
 		Collection<ItemContainer> backItems = null;
 		int backItemsCapacity = pendingChange.size();
 		Iterator<Integer> emptySlots = pendingChange.iterator();
+        IItemFilter<T> filter = filterRef.getValue();
 		
 		for (int i = startIndex; i < startIndex + count; ++i) {
 			final ItemContainer container = new ItemContainer(source.getAt(i));
@@ -286,34 +294,25 @@ final class FilteringReadOnlyObservableList<T>
 		notifyReset();
 	}
 
-	@Override
-	public IItemFilter<T> getFilter() {
-		return filter;
-	}
+	private void setFilter(IItemFilter<T> filter) {
+        Collection<ItemContainer> allItems = new ArrayList<ItemContainer>(data.size() + filteredOutItems.size());
 
-	@Override
-	public void setFilter(IItemFilter<T> filter) {
-		if (this.filter != filter) {
-			Collection<ItemContainer> allItems = new ArrayList<ItemContainer>(data.size() + filteredOutItems.size());
-			
-			this.filter = filter;
-			notifyResetting();
-			
-			allItems.addAll(data);
-			allItems.addAll(filteredOutItems.values());
-			data.clear();
-			filteredOutItems.clear();
-			
-			for (ItemContainer c : allItems) {
-				if (filter.isIn(c.item())) {
-					data.add(c);
-				} else {
-					filteredOutItems.put(c.item(), c);
-				}
-			}
-			
-			notifyReset();
-		}
+        notifyResetting();
+
+        allItems.addAll(data);
+        allItems.addAll(filteredOutItems.values());
+        data.clear();
+        filteredOutItems.clear();
+
+        for (ItemContainer c : allItems) {
+            if (filter.isIn(c.item())) {
+                data.add(c);
+            } else {
+                filteredOutItems.put(c.item(), c);
+            }
+        }
+
+        notifyReset();
 	}
 	
 	private void onItemMutated(T item) {
@@ -326,7 +325,7 @@ final class FilteringReadOnlyObservableList<T>
 		IResource res = monitor().acquireWrite();
 		
 		try {
-			if (filter.isIn(item)) {
+			if (filterRef.getValue().isIn(item)) {
 				ItemContainer container = filteredOutItems.remove(item);
 				
 				if (container != null) {
@@ -356,7 +355,7 @@ final class FilteringReadOnlyObservableList<T>
 	}
 	
 	private boolean addItem(T item) {
-		final boolean added = filter.isIn(item);
+		final boolean added = filterRef.getValue().isIn(item);
 		
 		ItemContainer container = new ItemContainer(item);
 		
