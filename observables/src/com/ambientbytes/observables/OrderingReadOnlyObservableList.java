@@ -170,6 +170,7 @@ final class OrderingReadOnlyObservableList<T> extends LinkedReadOnlyObservableLi
 		for (ItemContainer c : data) {
 			c.unadvise();
 		}
+		order.removeListener(orderListener);
 	}
 	
 	private void onItemMutated(T item) {

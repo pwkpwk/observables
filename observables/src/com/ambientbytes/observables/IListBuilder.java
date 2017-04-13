@@ -1,7 +1,8 @@
 package com.ambientbytes.observables;
 
 /**
- * Created by pakarpen on 4/11/17.
+ * Interface of an observable list builder.
+ * @author Pavel Karpenko
  */
 
 public interface IListBuilder<T> {

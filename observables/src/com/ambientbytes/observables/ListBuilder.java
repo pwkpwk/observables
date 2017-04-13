@@ -1,7 +1,5 @@
 package com.ambientbytes.observables;
 
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 /**
  * Builder of all read-only observable lists.
  * The builder is seeded with the ultimate source creates a chain of collections that observe each other
@@ -126,7 +124,7 @@ public final class ListBuilder<T> {
         
         protected final IReadOnlyObservableList<T> attachUnlinker(IReadOnlyObservableList<T> list) {
         	if (unlinker != null && list instanceof ILinkedReadOnlyObservableList) {
-        		Unlinker.attachUnlinker((ILinkedReadOnlyObservableList<T>) list, unlinker);
+        		list = Unlinker.attachUnlinker((ILinkedReadOnlyObservableList<T>) list, unlinker);
         	}
         	
         	return list;
@@ -259,9 +257,9 @@ public final class ListBuilder<T> {
 
     /**
      * Create the initial IListBuilder object that will build a chain of observable lists.
-     * @param source
-     * @param monitor
-     * @return
+     * @param source source observable list.
+     * @param monitor read/write monitor that will be passed to all observable lists in the chain.
+     * @return new builder that will return the source list.
      */
     public IListBuilder<T> source(IReadOnlyObservableList<T> source, IReadWriteMonitor monitor) {
     	return new StraightListBuilder<>(source, unlinker, monitor);
@@ -280,11 +278,10 @@ public final class ListBuilder<T> {
     /**
      * Create a new list builder that creates an observable list that merges contents of lists in the passed list set.
      * @param sources collection of source observable lists.
-     * @param unlinker trigger that unlinks the created list from its source.
      * @param monitor read/write monitor propagated to all chained list builders.
      * @return new list builder that creates a new merging observable list.
      */
-    public <T> IListBuilder<T> merge(IListSet<T> sources, IReadWriteMonitor monitor) {
+    public IListBuilder<T> merge(IListSet<T> sources, IReadWriteMonitor monitor) {
     	return new MergingListBuilder<>(sources, unlinker, monitor);
     }
 }

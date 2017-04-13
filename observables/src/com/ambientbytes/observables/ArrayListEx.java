@@ -51,7 +51,7 @@ class ArrayListEx<E> extends java.util.ArrayList<E> {
 		}
 	}
 	
-	private final void reverseRange(int low, int high) {
+	private void reverseRange(int low, int high) {
 		int l = low;
 		int h = high - 1;
 		

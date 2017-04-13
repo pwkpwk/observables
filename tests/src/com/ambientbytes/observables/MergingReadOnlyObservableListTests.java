@@ -122,7 +122,7 @@ public class MergingReadOnlyObservableListTests {
 	public void removeOnlyListNotifies() {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
-		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
+		final MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
 		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
 		ol.mutator().add(1);
 		ol.mutator().add(2);

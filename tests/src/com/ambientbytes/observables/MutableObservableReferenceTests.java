@@ -14,10 +14,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Created by pakarpen on 4/11/17.
- */
-
 public final class MutableObservableReferenceTests {
 
     @Mock IReferenceListener<Object> mockListener;

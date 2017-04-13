@@ -179,7 +179,7 @@ final class FilteringReadOnlyObservableList<T> extends LinkedReadOnlyObservableL
 			//
 			int shift = 0; // the accumulated index shift after removal of all items so far.
 			RangeDetector rd = new RangeDetector();
-			RangeDetector.Range range = null;
+			RangeDetector.Range range;
 			
 			while (emptySlots.hasNext()) {
 				final int index = emptySlots.next().intValue() - shift;
@@ -233,7 +233,7 @@ final class FilteringReadOnlyObservableList<T> extends LinkedReadOnlyObservableL
 		
 		if (!removedIndexes.isEmpty()) {
 			RangeDetector rd = new RangeDetector();
-			RangeDetector.Range range = null;
+			RangeDetector.Range range;
 			int shift = 0;
 			
 			for (Integer index : removedIndexes) {
