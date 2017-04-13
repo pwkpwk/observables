@@ -149,7 +149,7 @@ public class PipelineTest {
 		ObservableList<TestModel> models = ObservableCollections.createObservableList(monitor);
 		IListMutator<TestModel> mutator = models.mutator();
 
-		IReadOnlyObservableList<TestViewModel> list = ListBuilder.source(models.list(), monitor)
+		IReadOnlyObservableList<TestViewModel> list = ListBuilder.forSource(models.list(), monitor)
 				.filter(new ImmutableObservableReference<IItemFilter<TestModel>>(new ModelFilter()))
 				.map(new ModelMapper(monitor, dispatcher))
 				.order(new ImmutableObservableReference<IItemsOrder<TestViewModel>>(new ViewModelOrder()))
