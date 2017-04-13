@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T>, IReadOnlyObservableListSet<T> {
+final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservableList<T> {
 	
 	private final IReadWriteMonitor monitor;
 	private final ListObservers<T> observers;
 	private final List<ListInfo> lists;
 	private final ArrayListEx<T> data;
+	private final IListSet<T> listSet;
+	private final IListSetListener<T> listSetListener;
 	
 	private final static class ListChange {
 		private final int oldSize;
@@ -168,11 +170,30 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 	}
 	
-	MergingReadOnlyObservableList(IReadWriteMonitor monitor) {
+	MergingReadOnlyObservableList(IListSet<T> listSet, IReadWriteMonitor monitor) {
 		this.monitor = monitor;
 		this.observers = new ListObservers<>(monitor);
 		this.lists = new ArrayList<>();
 		this.data = new ArrayListEx<>();
+		this.listSet = listSet;
+		
+		for (IReadOnlyObservableList<T> list : listSet) {
+			add(list);
+		}
+		this.listSetListener = new IListSetListener<T>() {
+
+			@Override
+			public void added(IListSet<T> source, IReadOnlyObservableList<T> list) {
+				add(list);
+			}
+
+			@Override
+			public void removed(IListSet<T> source, IReadOnlyObservableList<T> list) {
+				remove(list);
+			}
+			
+		};
+		this.listSet.addListener(this.listSetListener);
 	}
 
 	@Override
@@ -196,7 +217,21 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 	}
 
 	@Override
-	public void add(IReadOnlyObservableList<T> list) {
+	public void unlink() {
+		IResource res = monitor.acquireWrite();
+		
+		try {
+			listSet.removeListener(listSetListener);
+			for (ListInfo list : lists) {
+				list.unlink();
+			}
+			lists.clear();
+		} finally {
+			res.release();
+		}
+	}
+
+	private void add(IReadOnlyObservableList<T> list) {
 		IResource res = monitor.acquireWrite();
 		
 		try {
@@ -223,8 +258,7 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 		}
 	}
 
-	@Override
-	public void remove(IReadOnlyObservableList<T> list) {
+	private void remove(IReadOnlyObservableList<T> list) {
 		IResource res = monitor.acquireWrite();
 		
 		try {
@@ -247,20 +281,6 @@ final class MergingReadOnlyObservableList<T> implements ILinkedReadOnlyObservabl
 					++i;
 				}
 			}
-		} finally {
-			res.release();
-		}
-	}
-
-	@Override
-	public void unlink() {
-		IResource res = monitor.acquireWrite();
-		
-		try {
-			for (ListInfo list : lists) {
-				list.unlink();
-			}
-			lists.clear();
 		} finally {
 			res.release();
 		}

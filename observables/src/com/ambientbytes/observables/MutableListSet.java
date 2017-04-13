@@ -35,7 +35,7 @@ public final class MutableListSet<T> implements IListSet<T> {
 		
 		for (IReadOnlyObservableList<T> list : lists) {
 			if (!this.lists.add(list)) {
-				throw new IllegalStateException("Cannot add a list more that once.");
+				throw new IllegalArgumentException("Cannot add a list more that once.");
 			}
 		}
 	}
@@ -49,7 +49,7 @@ public final class MutableListSet<T> implements IListSet<T> {
 					listener.added(this, list);
 				}
 			} else {
-				throw new IllegalStateException("Cannot add a list more that once.");
+				throw new IllegalArgumentException("Cannot add a list more that once.");
 			}
 		} finally {
 			lock.release();
@@ -90,7 +90,7 @@ public final class MutableListSet<T> implements IListSet<T> {
 		
 		try {
 			if (!listeners.add(listener)) {
-				throw new IllegalStateException("Cannot add a listener more that once.");
+				throw new IllegalArgumentException("Cannot add a listener more that once.");
 			}
 		} finally {
 			lock.release();

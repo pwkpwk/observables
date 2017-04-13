@@ -21,8 +21,4 @@ public final class ObservableCollections {
 		MutableObservableList<T> list = new MutableObservableList<>(monitor);
 		return new ObservableList<>(list, list.getMutator());
 	}
-
-	public static <T> MergingList<T> createMergingObservableList(IReadWriteMonitor monitor) {
-        return new MergingList<>(monitor);
-    }
 }
