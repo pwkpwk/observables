@@ -283,7 +283,6 @@ public final class ListBuilder<T> {
     /**
      * Create the initial IListBuilder object that will build a chain of observable lists.
      * @param source source observable list.
-     * @param monitor read/write monitor that will be passed to all observable lists in the chain.
      * @return new builder that will return the source list.
      */
     public IListBuilder<T> source(IReadOnlyObservableList<T> source) {
@@ -293,7 +292,6 @@ public final class ListBuilder<T> {
     /**
      * Create a new list builder that creates an observable list that merges contents of lists in the passed list set.
      * @param sources collection of source observable lists.
-     * @param monitor read/write monitor propagated to all chained list builders.
      * @return new list builder that creates a new merging observable list.
      */
     public IListBuilder<T> merge(IListSet<T> sources) {
