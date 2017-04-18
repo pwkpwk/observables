@@ -586,7 +586,7 @@ public class FilteringReadOnlyObservableListTests {
 		IMutableObject mutable1 = mock(IMutableObject.class);
 		IMutableObject mutable2 = mock(IMutableObject.class);
 		ListMutator<Object> mutator = new ListMutator<>(mockMonitor);
-		IReadOnlyObservableList<Object> source = ListBuilder.<Object>create(mockMonitor).mutable(mutator).build();
+		IReadOnlyObservableList<Object> source = ListBuilder.create(mockMonitor).mutable(mutator).build();
 		mutator.add(mutable1);
 		FilteringReadOnlyObservableList<Object> fol = new FilteringReadOnlyObservableList<>(
 		        source,

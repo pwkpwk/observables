@@ -5,7 +5,7 @@ import java.util.Collection;
 
 final class MappingReadOnlyObservableList<TSource, TMapped> implements ILinkedReadOnlyObservableList<TMapped> {
 
-	private ListObservers<TMapped> observers;
+	private final ListObservers<TMapped> observers;
 	private final IItemMapper<TSource, TMapped> mapper;
 	private final ArrayListEx<TMapped> data;
 	private IListObserver sourceObserver;
