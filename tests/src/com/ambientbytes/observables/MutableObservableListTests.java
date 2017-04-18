@@ -16,15 +16,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class MutableObservableListTests {
 	
@@ -32,7 +24,9 @@ public class MutableObservableListTests {
 	@Mock IReadWriteMonitor mockMonitor;
 	@Mock IResource rLock;
 	@Mock IResource wLock;
+	@Mock IListMutatorListener<Integer> mockMutator;
 	@Captor ArgumentCaptor<Collection<Integer>> captor;
+	@Captor ArgumentCaptor<IListMutator<Integer>> listenerCaptor;
 	
 	@Before
 	public void setUp() {
@@ -43,10 +37,38 @@ public class MutableObservableListTests {
 	
 	@Test
 	public void newListCorrectSetup() {
-		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
-		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mockMutator, mockMonitor);
 		
 		assertEquals(0, mol.getSize());
+		verify(mockMutator, times(1)).addListener(any(IListMutator.class));
+		verify(mockMutator, never()).removeListener(any(IListMutator.class));
+	}
+	
+	@Test
+	public void unlinkRemovesListener() {
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mockMutator, mockMonitor);
+		
+		mol.unlink();
+		
+		verify(mockMutator, times(1)).addListener(listenerCaptor.capture());
+		verify(mockMutator, times(1)).removeListener(listenerCaptor.capture());
+		
+		assertEquals(2, listenerCaptor.getAllValues().size());
+		assertSame(listenerCaptor.getAllValues().get(0), listenerCaptor.getAllValues().get(1));
+	}
+	
+	@Test
+	public void unlinkTwiceRemovesListenerOnce() {
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mockMutator, mockMonitor);
+		
+		mol.unlink();
+		mol.unlink();
+		
+		verify(mockMutator, times(1)).addListener(listenerCaptor.capture());
+		verify(mockMutator, times(1)).removeListener(listenerCaptor.capture());
+		
+		assertEquals(2, listenerCaptor.getAllValues().size());
+		assertSame(listenerCaptor.getAllValues().get(0), listenerCaptor.getAllValues().get(1));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
