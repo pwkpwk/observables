@@ -53,7 +53,7 @@ public interface IListMutator<T> {
 	 * @param count number of items to remove.
 	 * @return number of removed items; fewer items can be removed than requested. 
 	 */
-	int remove(int index, int count);
+	void remove(int index, int count);
 	
 	/**
 	 * Remove all items from the list.

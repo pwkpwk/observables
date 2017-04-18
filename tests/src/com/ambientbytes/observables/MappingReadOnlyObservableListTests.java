@@ -33,23 +33,29 @@ public class MappingReadOnlyObservableListTests {
 	
 	@Mock IListObserver stringObserver;
 	@Mock IItemMapper<Integer, String> mockMapper;
+	@Mock IReadWriteMonitor mockMonitor;
+	@Mock IResource rLock;
+	@Mock IResource wLock;
 	@Captor ArgumentCaptor<Collection<String>> stringsCaptor;
 
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		when(mockMonitor.acquireRead()).thenReturn(rLock);
+		when(mockMonitor.acquireWrite()).thenReturn(wLock);
 	}
 
 	@Test
 	public void newMappingReadOnlyObservableListAddsMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:1", "item:2", "item:3" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -58,15 +64,16 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void addToSourceAddsMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:1", "item:2", "item:3" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -76,16 +83,17 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void removeFromSourceRemovesMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
-		ol.mutator().remove(0, 2);
+		mutator.remove(0, 2);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:3" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -96,21 +104,22 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void moveUpNoOverlapMovesMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
-		ol.mutator().move(0, 4, 2);
+		mutator.move(0, 4, 2);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:2", "item:3", "item:4", "item:5", "item:0", "item:1", "item:6", "item:7" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -120,21 +129,22 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void moveUpOverlapMovesMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
-		ol.mutator().move(0, 2, 5);
+		mutator.move(0, 2, 5);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:5", "item:6", "item:0", "item:1", "item:2", "item:3", "item:4", "item:7" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -144,21 +154,22 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void moveDownNoOverlapMovesMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
-		ol.mutator().move(3, 0, 2);
+		mutator.move(3, 0, 2);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:3", "item:4", "item:0", "item:1", "item:2", "item:5", "item:6", "item:7" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -168,21 +179,22 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void moveDownOverlapMovesMappedItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		
-		ol.mutator().move(1, 0, 7);
+		mutator.move(1, 0, 7);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:1", "item:2", "item:3", "item:4", "item:5", "item:6", "item:7", "item:0" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -192,16 +204,17 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void resetSourceResets() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		Collection<Integer> newSourceValues = new ArrayList<>();
 		newSourceValues.add(10);
@@ -217,9 +230,9 @@ public class MappingReadOnlyObservableListTests {
 			}
 		}).when(stringObserver).resetting();
 		
-		ol.mutator().reset(newSourceValues);
+		mutator.reset(newSourceValues);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
+		assertEquals(source.getSize(), mol.getSize());
 		int index = 0;
 		for (String s : new String[] { "item:10", "item:20", "item:30" }) {
 			assertEquals(s, mol.getAt(index++));
@@ -234,21 +247,22 @@ public class MappingReadOnlyObservableListTests {
 
 	@Test
 	public void unlinkNoMoreUpdates() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), new IntegerToStringMapper(), new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, new IntegerToStringMapper(), new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		mol.unlink();
 		
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(6);
-		ol.mutator().add(7);
-		ol.mutator().move(1, 0, 7);
-		ol.mutator().remove(0, 5);
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(6);
+		mutator.add(7);
+		mutator.move(1, 0, 7);
+		mutator.remove(0, 5);
 
 		assertEquals(0, mol.getSize());
 		verify(stringObserver, never()).moved(anyInt(), anyInt(), anyInt());
@@ -259,13 +273,14 @@ public class MappingReadOnlyObservableListTests {
 		
 	@Test
 	public void setCallsMapper() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
 		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
-		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper, new DummyReadWriteMonitor());
+		MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, mockMapper, new DummyReadWriteMonitor());
 		
 		verify(mockMapper, times(1)).map(eq(Integer.valueOf(0)));
-		ol.mutator().set(0, 10);
+		mutator.set(0, 10);
 		
 		verify(mockMapper, times(1)).map(eq(Integer.valueOf(10)));
 		assertEquals("10", mol.getAt(0));
@@ -273,13 +288,14 @@ public class MappingReadOnlyObservableListTests {
 	
 	@Test
 	public void setReportsChange() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(0);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(0);
+		mutator.add(1);
+		mutator.add(2);
 		when(mockMapper.map(eq(Integer.valueOf(10)))).thenReturn("10");
 		when(mockMapper.map(eq(Integer.valueOf(1)))).thenReturn("1");
-		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(ol.list(), mockMapper, new DummyReadWriteMonitor());
+		final MappingReadOnlyObservableList<Integer, String> mol = new MappingReadOnlyObservableList<>(source, mockMapper, new DummyReadWriteMonitor());
 		mol.addObserver(stringObserver);
 		doAnswer(new Answer<Void>() {
 			@Override
@@ -289,7 +305,7 @@ public class MappingReadOnlyObservableListTests {
 			}
 		}).when(stringObserver).changing(eq(1), eq(1));
 		
-		ol.mutator().set(1, 10);
+		mutator.set(1, 10);
 
 		verify(stringObserver, times(1)).changing(eq(1), eq(1));
 		verify(stringObserver, times(1)).changed(eq(1), eq(1));

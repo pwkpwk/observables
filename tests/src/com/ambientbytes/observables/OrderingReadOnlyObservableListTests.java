@@ -24,6 +24,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class OrderingReadOnlyObservableListTests {
 	
@@ -88,29 +89,35 @@ public class OrderingReadOnlyObservableListTests {
 	@Captor ArgumentCaptor<Collection<Integer>> integerCollectionCaptor;
 	@Captor ArgumentCaptor<Collection<TestItem>> testCollectionCaptor;
 	@Mock IListObserver observer;
+	@Mock IReadWriteMonitor mockMonitor;
+	@Mock IResource rLock;
+	@Mock IResource wLock;
 	private IReadWriteMonitor monitor;
 
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		when(mockMonitor.acquireRead()).thenReturn(rLock);
+		when(mockMonitor.acquireWrite()).thenReturn(wLock);
 		monitor = new DummyReadWriteMonitor();
 	}
 
 	@Test
 	public void newOrderingReadOnlyObservableListSortsSourceItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(4);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(4);
 		IItemsOrder<Integer> order = new IntegerOrder(); 
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-				ol.list(),
+				source,
 				new ImmutableObservableReference<>(order),
 				monitor);
 
-		assertEquals(ol.list().getSize(), ool.getSize());
+		assertEquals(source.getSize(), ool.getSize());
 		assertEquals(1, ool.getAt(0).intValue());
 		assertEquals(2, ool.getAt(1).intValue());
 		assertEquals(3, ool.getAt(2).intValue());
@@ -120,16 +127,17 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void addToSourceSortsSourceItems() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-				ol.list(),
+				source,
 				new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
 				monitor);
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(4);
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(4);
 		
 		assertEquals(1, ool.getAt(0).intValue());
 		assertEquals(2, ool.getAt(1).intValue());
@@ -140,34 +148,36 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void addToSourceReportsAdding() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
                 monitor);
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
 		ool.addObserver(observer);
-		ol.mutator().add(4);
+		mutator.add(4);
 
 		verify(observer, times(1)).added(eq(3), eq(1));
 	}
 
 	@Test
 	public void removeLowestRemoves() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(4);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
                 monitor);
-		ol.mutator().remove(2, 1);
+		mutator.remove(2, 1);
 		
 		assertEquals(2, ool.getAt(0).intValue());
 		assertEquals(3, ool.getAt(1).intValue());
@@ -177,25 +187,26 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void removeLowestReportsRemoval() {
-		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(4);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(4);
 		final OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
                 monitor);
 		ool.addObserver(observer);
 		
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
-				assertSame(ol.list().getAt(1), ool.getAt(2));
+				assertSame(source.getAt(1), ool.getAt(2));
 				return null;
 			}
 		}).when(observer).removing(eq(2), eq(1));
-		ol.mutator().remove(1, 1);
+		mutator.remove(1, 1);
 		
 		verify(observer, times(1)).removing(eq(2), eq(1));
 		verify(observer, times(1)).removed(eq(2), eq(1));
@@ -203,18 +214,19 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void removeHighestRemoves() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(4);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
                 monitor);
 		ool.addObserver(observer);
-		ol.mutator().remove(0, 1);
+		mutator.remove(0, 1);
 	
 		assertEquals(4, ool.getSize());
 		assertEquals(1, ool.getAt(0).intValue());
@@ -227,17 +239,18 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void removeMiddleRemoves() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(2);
-		ol.mutator().add(1);
-		ol.mutator().add(4);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(2);
+		mutator.add(1);
+		mutator.add(4);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder()),
                 monitor);
-		ol.mutator().remove(1, 2);
+		mutator.remove(1, 2);
 		
 		assertEquals(1, ool.getAt(0).intValue());
 		assertEquals(4, ool.getAt(1).intValue());
@@ -246,15 +259,16 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void changeOrderReorders() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(2);
-		ol.mutator().add(1);
-		ol.mutator().add(4);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(2);
+		mutator.add(1);
+		mutator.add(4);
         MutableObservableReference<IItemsOrder<Integer>> order = new MutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder(), monitor);
 		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 order,
                 monitor);
 		order.setValue(new IntegerReverseOrder());
@@ -268,14 +282,15 @@ public class OrderingReadOnlyObservableListTests {
 
 	@Test
 	public void changeOrderReportsReset() {
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(5);
-		ol.mutator().add(3);
-		ol.mutator().add(2);
-		ol.mutator().add(1);
-		ol.mutator().add(4);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(5);
+		mutator.add(3);
+		mutator.add(2);
+		mutator.add(1);
+		mutator.add(4);
         MutableObservableReference<IItemsOrder<Integer>> order = new MutableObservableReference<IItemsOrder<Integer>>(new IntegerOrder(), monitor);
-		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(ol.list(), order, monitor);
+		OrderingReadOnlyObservableList<Integer> ool = new OrderingReadOnlyObservableList<>(source, order, monitor);
 		ool.addObserver(observer);
 
 		order.setValue(new IntegerReverseOrder());
@@ -286,45 +301,47 @@ public class OrderingReadOnlyObservableListTests {
 	
 	@Test
 	public void removeMutableUnadvises() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		TestItem item;
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(4));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		
 		assertNotNull(ool); // to suppress the warning about ool not being used
 		assertEquals(1, item.getObserversNumber());
-		ol.mutator().remove(2, 1);
+		mutator.remove(2, 1);
 
 		assertEquals(0, item.getObserversNumber());
 	}
 	
 	@Test
 	public void removeOneOfDuplicatesRemoves() {
-		final ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		final TestItem item = new TestItem(2);
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item);
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(new TestItem(4));
-		ol.mutator().add(new TestItem(5));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(new TestItem(2));
+		mutator.add(new TestItem(2));
+		mutator.add(item);
+		mutator.add(new TestItem(2));
+		mutator.add(new TestItem(4));
+		mutator.add(new TestItem(5));
 		final OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
 				boolean found = false;
 				
-				assertEquals(ol.list().getSize(), ool.getSize());
+				assertEquals(source.getSize(), ool.getSize());
 				for (int i = 0; i < ool.getSize(); ++i) {
 					if (item == ool.getAt(i)) {
 						found = true;
@@ -336,7 +353,7 @@ public class OrderingReadOnlyObservableListTests {
 		}).when(observer).removing(anyInt(), anyInt());
 		ool.addObserver(observer);
 
-		ol.mutator().remove(4, 1);
+		mutator.remove(4, 1);
 
 		verify(observer, times(1)).removing(anyInt(), eq(1));
 		verify(observer, times(1)).removed(anyInt(), eq(1));
@@ -344,14 +361,15 @@ public class OrderingReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateItemDownListReordered() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		TestItem item;
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(4));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		
@@ -365,14 +383,15 @@ public class OrderingReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateItemUpListReordered() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		TestItem item;
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(4));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		
@@ -386,14 +405,15 @@ public class OrderingReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateItemMoveReported() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		TestItem item;
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(4));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(4));
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		ool.addObserver(observer);
@@ -408,17 +428,18 @@ public class OrderingReadOnlyObservableListTests {
 		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
 		final TestItem[] newItems = new TestItem[] { new TestItem(6), new TestItem(7), new TestItem(8), new TestItem(9) };
 		final Collection<TestItem> newItemsList = new ArrayList<TestItem>(newItems.length);
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		for (TestItem item : originalItems) {
-			ol.mutator().add(item);
+			mutator.add(item);
 		}
 		Collections.addAll(newItemsList, newItems);
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 
-		ol.mutator().reset(newItemsList);
+		mutator.reset(newItemsList);
 		
 		assertEquals(newItems.length, ool.getSize());
 		for (int i = 0; i < newItems.length; ++i) {
@@ -433,17 +454,18 @@ public class OrderingReadOnlyObservableListTests {
 	@Test
 	public void moveInSourceNoChange() {
 		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		for (TestItem item : originalItems) {
-			ol.mutator().add(item);
+			mutator.add(item);
 		}
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		ool.addObserver(observer);
 
-		ol.mutator().move(0, 2, 2);
+		mutator.move(0, 2, 2);
 
 		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
 		verify(observer, never()).added(anyInt(), anyInt());
@@ -456,20 +478,21 @@ public class OrderingReadOnlyObservableListTests {
 	@Test
 	public void unlinkAndChangeNoChanges() {
 		final TestItem[] originalItems = new TestItem[] { new TestItem(1), new TestItem(2), new TestItem(3), new TestItem(4), new TestItem(5) };
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		final ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
 		for (TestItem item : originalItems) {
-			ol.mutator().add(item);
+			mutator.add(item);
 		}
 		OrderingReadOnlyObservableList<TestItem> ool = new OrderingReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<IItemsOrder<TestItem>>(new TestOrder()),
                 monitor);
 		ool.addObserver(observer);
 		ool.unlink();
 
-		ol.mutator().move(0, 2, 2);
-		ol.mutator().add(new TestItem(100));
-		ol.mutator().remove(0, 3);
+		mutator.move(0, 2, 2);
+		mutator.add(new TestItem(100));
+		mutator.remove(0, 3);
 
 		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
 		verify(observer, never()).added(anyInt(), anyInt());

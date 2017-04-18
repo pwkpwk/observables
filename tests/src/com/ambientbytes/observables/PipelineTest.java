@@ -146,10 +146,9 @@ public class PipelineTest {
 	public void test() {
 		IDispatcher dispatcher = mock(IDispatcher.class);
 		IReadWriteMonitor monitor = LockTool.createReadWriteMonitor(new ReentrantReadWriteLock());
-		ObservableList<TestModel> models = ObservableCollections.createObservableList(monitor);
-		IListMutator<TestModel> mutator = models.mutator();
-
-		IReadOnlyObservableList<TestViewModel> list = ListBuilder.forSource(models.list(), monitor)
+		ListMutator<TestModel> mutator = new ListMutator<>(monitor);
+		IReadOnlyObservableList<TestViewModel> list = ListBuilder.<TestModel>create(monitor)
+				.mutable(mutator)
 				.filter(new ImmutableObservableReference<IItemFilter<TestModel>>(new ModelFilter()))
 				.map(new ModelMapper(monitor, dispatcher))
 				.order(new ImmutableObservableReference<IItemsOrder<TestViewModel>>(new ViewModelOrder()))

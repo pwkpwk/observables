@@ -34,9 +34,8 @@ public class ListBuilderTests {
 	@Test
 	public void singleSourceAddFilterUnlinkUnlinks() {
 		Trigger trigger = new Trigger(monitor);
-		IReadOnlyObservableList<Integer> list = ListBuilder
-				.<Integer>unlinker(trigger)
-				.source(source, monitor)
+		IReadOnlyObservableList<Integer> list = ListBuilder.<Integer>create(trigger, monitor)
+				.source(source)
 				.filter(new ImmutableObservableReference<>(filter))
 				.build();
 
@@ -50,9 +49,8 @@ public class ListBuilderTests {
 	@Test
 	public void mergedSourceAddFilterUnlinkUnlinks() {
 		Trigger trigger = new Trigger(monitor);
-		IReadOnlyObservableList<Integer> list = ListBuilder
-				.<Integer>unlinker(trigger)
-				.merge(new MutableListSet<>(monitor, source), monitor)
+		IReadOnlyObservableList<Integer> list = ListBuilder.<Integer>create(trigger, monitor)
+				.merge(new MutableListSet<>(monitor, source))
 				.filter(new ImmutableObservableReference<>(filter))
 				.build();
 
@@ -66,9 +64,8 @@ public class ListBuilderTests {
 	@Test
 	public void singleSourceAddDispatcherUnlinkUnlinks() {
 		Trigger trigger = new Trigger(monitor);
-		IReadOnlyObservableList<Integer> list = ListBuilder
-				.<Integer>unlinker(trigger)
-				.source(source, monitor)
+		IReadOnlyObservableList<Integer> list = ListBuilder.<Integer>create(trigger, monitor)
+				.source(source)
 				.dispatch(dispatcher)
 				.build();
 
@@ -82,9 +79,8 @@ public class ListBuilderTests {
 	@Test
 	public void singleSourceAddMapperUnlinkUnlinks() {
 		Trigger trigger = new Trigger(monitor);
-		IReadOnlyObservableList<Integer> list = ListBuilder
-				.<Integer>unlinker(trigger)
-				.source(source, monitor)
+		IReadOnlyObservableList<Integer> list = ListBuilder.<Integer>create(trigger, monitor)
+				.source(source)
 				.map(mapper).build();
 
 		verify(source, times(1)).addObserver(any(IListObserver.class));
@@ -97,9 +93,8 @@ public class ListBuilderTests {
 	@Test
 	public void singleSourceAddOrderUnlinkUnlinks() {
 		Trigger trigger = new Trigger(monitor);
-		IReadOnlyObservableList<Integer> list = ListBuilder
-				.<Integer>unlinker(trigger)
-				.source(source, monitor)
+		IReadOnlyObservableList<Integer> list = ListBuilder.<Integer>create(trigger, monitor)
+				.source(source)
 				.order(new ImmutableObservableReference<>(order))
 				.build();
 

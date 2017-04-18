@@ -29,50 +29,52 @@ import static org.mockito.Mockito.when;
 public class MutableObservableListTests {
 	
 	@Mock IListObserver observer;
+	@Mock IReadWriteMonitor mockMonitor;
+	@Mock IResource rLock;
+	@Mock IResource wLock;
 	@Captor ArgumentCaptor<Collection<Integer>> captor;
 	
 	@Before
 	public void setUp() {
 		MockitoAnnotations.initMocks(this);
+		when(mockMonitor.acquireRead()).thenReturn(rLock);
+		when(mockMonitor.acquireWrite()).thenReturn(wLock);
 	}
 	
 	@Test
 	public void newListCorrectSetup() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		
 		assertEquals(0, mol.getSize());
-		assertNotNull(mol.getMutator());
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void newListNullLockThrows() {
-		new MutableObservableList<>(null);
+		new MutableObservableList<Integer>(new ListMutator<Integer>(mockMonitor), null);
 	}
 
 	@Test
 	public void addLocksWrite() {
-		IResource wLock = mock(IResource.class);
-        IResource rLock = mock(IResource.class);
-		IReadWriteMonitor monitor = mock(IReadWriteMonitor.class);
-		when(monitor.acquireWrite()).thenReturn(wLock);
-        when(monitor.acquireRead()).thenReturn(rLock);
-		MutableObservableList<Integer> mol = new MutableObservableList<>(monitor);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
-		mol.getMutator().add(Integer.valueOf(1));
+		mutator.add(Integer.valueOf(1));
 
-		verify(monitor, atLeastOnce()).acquireWrite();
-		verify(wLock, times(1)).release();
+		verify(mockMonitor, times(2)).acquireWrite();
+		verify(wLock, times(2)).release();
 	}
 
 	@Test
 	public void add2ItemsAdded() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Integer value1 = Integer.valueOf(1);
 		Integer value2 = Integer.valueOf(2);
 
 		mol.addObserver(observer);
-		mol.getMutator().add(value1);
-		mol.getMutator().add(value2);
+		mutator.add(value1);
+		mutator.add(value2);
 
 		assertEquals(2, mol.getSize());
 		assertSame(value1, mol.getAt(0));
@@ -83,13 +85,14 @@ public class MutableObservableListTests {
 
 	@Test
 	public void insert2ItemsAdded() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Integer value1 = Integer.valueOf(1);
 		Integer value2 = Integer.valueOf(2);
 
 		mol.addObserver(observer);
-		mol.getMutator().add(0, value1);
-		mol.getMutator().add(1, value2);
+		mutator.add(0, value1);
+		mutator.add(1, value2);
 
 		assertEquals(2, mol.getSize());
 		assertSame(value1, mol.getAt(0));
@@ -100,14 +103,15 @@ public class MutableObservableListTests {
 	
 	@Test
 	public void removeItemRemoved() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Integer value1 = Integer.valueOf(1);
 		Integer value2 = Integer.valueOf(2);
 
-		mol.getMutator().add(0, value1);
-		mol.getMutator().add(1, value2);
+		mutator.add(0, value1);
+		mutator.add(1, value2);
 		mol.addObserver(observer);
-		assertEquals(1, mol.getMutator().remove(0, 1));
+		mutator.remove(0, 1);
 
 		assertEquals(1, mol.getSize());
 		assertSame(value2, mol.getAt(0));
@@ -117,25 +121,30 @@ public class MutableObservableListTests {
 	
 	@Test
 	public void removeTooManyTrimmedRemoved() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Integer value1 = Integer.valueOf(1);
 		Integer value2 = Integer.valueOf(2);
 
-		mol.getMutator().add(0, value1);
-		mol.getMutator().add(1, value2);
+		mutator.add(0, value1);
+		mutator.add(1, value2);
 		mol.addObserver(observer);
-		assertEquals(1, mol.getMutator().remove(1, 10));
+		mutator.remove(1, 10);
+		assertEquals(1, mol.getSize());
+		verify(observer, times(1)).removing(1, 1);
+		verify(observer, times(1)).removed(1, 1);
 	}
 	
 	@Test
 	public void clearCleared() {
-		MutableObservableList<Object> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Object> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Object> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Object value1 = new Object();
 		Object value2 = new Object();
 
-		mol.getMutator().add(0, value1);
-		mol.getMutator().add(1, value2);
-		mol.getMutator().clear();
+		mutator.add(0, value1);
+		mutator.add(1, value2);
+		mutator.clear();
 
 		assertEquals(0, mol.getSize());
 	}
@@ -144,13 +153,14 @@ public class MutableObservableListTests {
 	public void moveInTheMiddleUpMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] target = { 0, 1, 7, 8, 2, 3, 4, 5, 6, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(2, 4, 5);
+		mutator.move(2, 4, 5);
 
 		assertEquals(target.length, mol.getSize());
 		assertEquals(target.length, origin.length);
@@ -163,13 +173,14 @@ public class MutableObservableListTests {
 	public void moveBeginningNoOverlapUpMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] target = { 2, 3, 4, 5, 0, 1, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(0, 4, 2);
+		mutator.move(0, 4, 2);
 
 		assertEquals(target.length, mol.getSize());
 		assertEquals(target.length, origin.length);
@@ -182,13 +193,14 @@ public class MutableObservableListTests {
 	public void moveBeginningOverlapUpMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] target = { 5, 6, 0, 1, 2, 3, 4, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(0, 2, 5);
+		mutator.move(0, 2, 5);
 
 		assertEquals(target.length, mol.getSize());
 		assertEquals(target.length, origin.length);
@@ -201,14 +213,15 @@ public class MutableObservableListTests {
 	public void moveInTheMiddleDownMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] target = { 0, 1, 4, 5, 6, 7, 8, 2, 3, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		assertEquals(target.length, origin.length);
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(4, 2, 5);
+		mutator.move(4, 2, 5);
 
 		assertEquals(target.length, mol.getSize());
 		for (int i = 0; i < target.length; ++i) {
@@ -219,86 +232,93 @@ public class MutableObservableListTests {
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveSourceNegativeThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(-5, 2, 5);
+		mutator.move(-5, 2, 5);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveDestinationNegativeThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(1, -2, 5);
+		mutator.move(1, -2, 5);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveSourceOutsizeThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(origin.length, 3, 5);
+		mutator.move(origin.length, 3, 5);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveDestinationOutsizeThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(0, origin.length, 5);
+		mutator.move(0, origin.length, 5);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveOutsideThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(0, 2, origin.length);
+		mutator.move(0, 2, origin.length);
 	}
 
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void moveTooMuchThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().move(1, 0, origin.length);
+		mutator.move(1, 0, origin.length);
 	}
 	
 	@Test
 	public void moveSamePositionNotMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().move(1, 1, 5);
+		mutator.move(1, 1, 5);
 
 		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
 	}
@@ -306,14 +326,15 @@ public class MutableObservableListTests {
 	@Test
 	public void moveZeroLengthNotMoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().move(1, 5, 0);
+		mutator.move(1, 5, 0);
 
 		verify(observer, never()).moved(anyInt(), anyInt(), anyInt());
 	}
@@ -321,14 +342,15 @@ public class MutableObservableListTests {
 	@Test
 	public void removeZeroLengthNotRemoved() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().remove(1, 0);
+		mutator.remove(1, 0);
 
 		verify(observer, never()).removing(anyInt(), anyInt());
 		verify(observer, never()).removed(anyInt(), anyInt());
@@ -336,10 +358,11 @@ public class MutableObservableListTests {
 	
 	@Test
 	public void emptyListClearNotRemoved() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		mol.addObserver(observer);
 		
-		mol.getMutator().clear();
+		mutator.clear();
 
 		verify(observer, never()).removing(anyInt(), anyInt());
 		verify(observer, never()).removed(anyInt(), anyInt());
@@ -348,34 +371,37 @@ public class MutableObservableListTests {
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void removeNegativeStartThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().remove(-1, 4);
+		mutator.remove(-1, 4);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void removeOutsizeThrows() {
 		final int[] origin = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < origin.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(origin[i]));
+			mutator.add(i, Integer.valueOf(origin[i]));
 		}
 		
-		mol.getMutator().remove(origin.length, 4);
+		mutator.remove(origin.length, 4);
 	}
 	
 	@Test
 	public void removeObserverAddNotReported() {
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		mol.addObserver(observer);
 		mol.removeObserver(observer);
 		
-		mol.getMutator().add(Integer.valueOf(1));
+		mutator.add(Integer.valueOf(1));
 		
 		verify(observer, never()).added(anyInt(), anyInt());
 	}
@@ -384,17 +410,18 @@ public class MutableObservableListTests {
 	public void resetReset() {
 		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] updated = { 0, 1, 7, 8 };
-		MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>(updated.length);
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		for (int i = 0; i < updated.length; ++i) {
 			newContents.add(Integer.valueOf(updated[i]));
 		}
 		
-		mol.getMutator().reset(newContents);
+		mutator.reset(newContents);
 
 		assertEquals(updated.length, mol.getSize());
 		for (int i = 0; i < updated.length; ++i) {
@@ -406,7 +433,8 @@ public class MutableObservableListTests {
 	public void resetNotifies() {
 		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] updated = { 0, 1, 7, 8 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		final List<Integer> capturedValues = new ArrayList<>();
 		Collection<Integer> newContents = new ArrayList<Integer>(updated.length);
 		doAnswer(new Answer<Void>() {
@@ -419,14 +447,14 @@ public class MutableObservableListTests {
 		}).when(observer).resetting();
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		for (int i = 0; i < updated.length; ++i) {
 			newContents.add(Integer.valueOf(updated[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().reset(newContents);
+		mutator.reset(newContents);
 
 		verify(observer, times(1)).resetting();
 		verify(observer, times(1)).reset();
@@ -440,18 +468,19 @@ public class MutableObservableListTests {
 	public void addCollectionAllAdded() {
 		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 		final int[] added = { 0, 1, 7, 8 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>(added.length);
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, original[i]);
+			mutator.add(i, original[i]);
 		}
 		for (int i = 0; i < added.length; ++i) {
 			newContents.add(added[i]);
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().add(0, newContents);
+		mutator.add(0, newContents);
 
 		verify(observer, times(1)).added(eq(0), eq(added.length));
 		assertEquals(original.length + added.length, mol.getSize());
@@ -463,15 +492,16 @@ public class MutableObservableListTests {
 	@Test
 	public void addEmptyCollectionNoChange() {
 		final int[] original = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>();
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().add(0, newContents);
+		mutator.add(0, newContents);
 
 		verify(observer, never()).added(anyInt(), anyInt());
 		assertEquals(original.length, mol.getSize());
@@ -483,14 +513,15 @@ public class MutableObservableListTests {
 	@Test
 	public void setOneSets() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(0, 100);
+		mutator.set(0, 100);
 		
 		assertEquals(100, mol.getAt(0).intValue());
 	}
@@ -498,14 +529,15 @@ public class MutableObservableListTests {
 	@Test
 	public void setLastOneSets() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(original.length - 1, 100);
+		mutator.set(original.length - 1, 100);
 		
 		assertEquals(100, mol.getAt(original.length - 1).intValue());
 	}
@@ -513,17 +545,18 @@ public class MutableObservableListTests {
 	@Test
 	public void setCollectionSets() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>();
 		newContents.add(100);
 		newContents.add(101);
 		newContents.add(102);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(1, newContents);
+		mutator.set(1, newContents);
 		
 		assertEquals(100, mol.getAt(1).intValue());
 		assertEquals(101, mol.getAt(2).intValue());
@@ -533,17 +566,18 @@ public class MutableObservableListTests {
 	@Test
 	public void setCollectionAtBackSets() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>();
 		newContents.add(100);
 		newContents.add(101);
 		newContents.add(102);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(original.length - newContents.size() - 1, newContents);
+		mutator.set(original.length - newContents.size() - 1, newContents);
 		
 		assertEquals(100, mol.getAt(original.length - newContents.size() - 1).intValue());
 		assertEquals(101, mol.getAt(original.length - newContents.size()).intValue());
@@ -553,65 +587,70 @@ public class MutableObservableListTests {
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void setOneNegativeIndexThrows() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(-2, 456);
+		mutator.set(-2, 456);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void setOneBehindBackThrows() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(original.length, 456);
+		mutator.set(original.length, 456);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void setCollectionNegativeIndexThrows() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>();
 		newContents.add(100);
 		newContents.add(101);
 		newContents.add(102);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(-1, newContents);
+		mutator.set(-1, newContents);
 	}
 	
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void setCollectionBehindBackThrows() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		Collection<Integer> newContents = new ArrayList<Integer>();
 		newContents.add(100);
 		newContents.add(101);
 		newContents.add(102);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(original.length - 1, newContents);
+		mutator.set(original.length - 1, newContents);
 	}
 	
 	@Test
 	public void setOneReports() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		doAnswer(new Answer<Void>(){
 			@Override
@@ -623,7 +662,7 @@ public class MutableObservableListTests {
 		
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(0, 100);
+		mutator.set(0, 100);
 		
 		verify(observer, times(1)).changing(eq(0), eq(1));
 		verify(observer, times(1)).changed(eq(0), eq(1));
@@ -632,9 +671,10 @@ public class MutableObservableListTests {
 	@Test
 	public void setCollectionReports() {
 		final int[] original = { 0, 1, 2, 3, 4, 5 };
-		final MutableObservableList<Integer> mol = new MutableObservableList<>(new DummyReadWriteMonitor());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final MutableObservableList<Integer> mol = new MutableObservableList<>(mutator, mockMonitor);
 		for (int i = 0; i < original.length; ++i) {
-			mol.getMutator().add(i, Integer.valueOf(original[i]));
+			mutator.add(i, Integer.valueOf(original[i]));
 		}
 		final Collection<Integer> newContents = new ArrayList<Integer>();
 		newContents.add(100);
@@ -652,7 +692,7 @@ public class MutableObservableListTests {
 		
 		mol.addObserver(observer);
 		
-		mol.getMutator().set(0, newContents);
+		mutator.set(0, newContents);
 		
 		verify(observer, times(1)).changing(eq(0), eq(3));
 		verify(observer, times(1)).changed(eq(0), eq(3));

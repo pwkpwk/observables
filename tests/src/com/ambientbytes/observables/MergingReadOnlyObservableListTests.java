@@ -29,12 +29,16 @@ public class MergingReadOnlyObservableListTests {
 	@Mock ILinkedReadOnlyObservableList<Integer> integerList1;
 	@Mock ILinkedReadOnlyObservableList<Integer> integerList2;
 	@Mock ILinkedReadOnlyObservableList<Integer> integerList3;
-	
+	@Mock IReadWriteMonitor mockMonitor;
+	@Mock IResource rLock;
+	@Mock IResource wLock;	
 	@Captor ArgumentCaptor<Collection<Integer>> integerCaptor;
 
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		when(mockMonitor.acquireRead()).thenReturn(rLock);
+		when(mockMonitor.acquireWrite()).thenReturn(wLock);
 	}
 
 	@Test
@@ -51,18 +55,19 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
 
-		sources.add(ol.list());
+		sources.add(source);
 		
-		assertEquals(ol.list().getSize(), mol.getSize());
-		for (int i = 0; i < ol.list().getSize(); ++i) {
-			assertSame(ol.list().getAt(i), mol.getAt(i));
+		assertEquals(source.getSize(), mol.getSize());
+		for (int i = 0; i < source.getSize(); ++i) {
+			assertSame(source.getAt(i), mol.getAt(i));
 		}
 	}
 
@@ -71,15 +76,16 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
 		mol.addObserver(observer);
 
-		sources.add(ol.list());
+		sources.add(source);
 		
 		verify(observer, times(1)).added(eq(0), eq(5));
 	}
@@ -89,15 +95,16 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
 
-		sources.add(ol.list());
-		sources.add(ol.list());
+		sources.add(source);
+		sources.add(source);
 	}
 
 	@Test
@@ -105,15 +112,16 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		sources.add(ol.list());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		sources.add(source);
 
-		sources.remove(ol.list());
+		sources.remove(source);
 		
 		assertEquals(0, mol.getSize());
 	}
@@ -123,28 +131,29 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		final MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		final ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		sources.add(ol.list());
+		final ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		sources.add(source);
 		doAnswer(new Answer<Void>() {
 			public Void answer(InvocationOnMock invocation) {
-				assertEquals(ol.list().getSize(), mol.getSize());
+				assertEquals(source.getSize(), mol.getSize());
 				for (int i = 0; i < mol.getSize(); ++i) {
-					assertSame(ol.list().getAt(i), mol.getAt(i));
+					assertSame(source.getAt(i), mol.getAt(i));
 				}
 				return null;
 			}
 		}).when(observer).removing(anyInt(), anyInt());
 		mol.addObserver(observer);
 
-		sources.remove(ol.list());
+		sources.remove(source);
 		
-		verify(observer, times(1)).removing(eq(0), eq(ol.list().getSize()));
-		verify(observer, times(1)).removed(eq(0), eq(ol.list().getSize()));
+		verify(observer, times(1)).removing(eq(0), eq(source.getSize()));
+		verify(observer, times(1)).removed(eq(0), eq(source.getSize()));
 	}
 
 	@Test
@@ -175,40 +184,43 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
 		mol.addObserver(observer);
 
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		
-		assertEquals(ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize(), mol.getSize());
+		assertEquals(source1.getSize() + source2.getSize() + source3.getSize(), mol.getSize());
 		int index = 0;
-		for (int i = 0; i < ol1.list().getSize(); ++i) {
-			assertSame(ol1.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source1.getSize(); ++i) {
+			assertSame(source1.getAt(i), mol.getAt(index++));
 		}
-		for (int i = 0; i < ol2.list().getSize(); ++i) {
-			assertSame(ol2.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source2.getSize(); ++i) {
+			assertSame(source2.getAt(i), mol.getAt(index++));
 		}
-		for (int i = 0; i < ol3.list().getSize(); ++i) {
-			assertSame(ol3.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source3.getSize(); ++i) {
+			assertSame(source3.getAt(i), mol.getAt(index++));
 		}
 		verify(observer, times(1)).added(eq(0), eq(5));
 		verify(observer, times(1)).added(eq(5), eq(5));
@@ -220,38 +232,41 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		sources.remove(ol2.list());
+		sources.remove(source2);
 		
-		assertEquals(ol1.list().getSize() + ol3.list().getSize(), mol.getSize());
+		assertEquals(source1.getSize() + source3.getSize(), mol.getSize());
 		int index = 0;
-		for (int i = 0; i < ol1.list().getSize(); ++i) {
-			assertSame(ol1.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source1.getSize(); ++i) {
+			assertSame(source1.getAt(i), mol.getAt(index++));
 		}
-		for (int i = 0; i < ol3.list().getSize(); ++i) {
-			assertSame(ol3.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source3.getSize(); ++i) {
+			assertSame(source3.getAt(i), mol.getAt(index++));
 		}
 		verify(observer, times(1)).removing(eq(5), eq(5));
 		verify(observer, times(1)).removed(eq(5), eq(5));
@@ -262,29 +277,32 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 
-		ol2.mutator().move(0, 2, 3);
+		mutator2.move(0, 2, 3);
 		
 		assertEquals(24, mol.getAt(5).intValue());
 		assertEquals(25, mol.getAt(6).intValue());
@@ -293,12 +311,12 @@ public class MergingReadOnlyObservableListTests {
 		assertEquals(23, mol.getAt(9).intValue());
 
 		int index = 0;
-		for (int i = 0; i < ol1.list().getSize(); ++i) {
-			assertSame(ol1.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source1.getSize(); ++i) {
+			assertSame(source1.getAt(i), mol.getAt(index++));
 		}
 		index += 5;
-		for (int i = 0; i < ol3.list().getSize(); ++i) {
-			assertSame(ol3.list().getAt(i), mol.getAt(index++));
+		for (int i = 0; i < source3.getSize(); ++i) {
+			assertSame(source3.getAt(i), mol.getAt(index++));
 		}
 	}
 
@@ -307,30 +325,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		ol2.mutator().move(0, 2, 3);
+		mutator2.move(0, 2, 3);
 
 		verify(observer, times(1)).moved(eq(5), eq(7), eq(3));
 	}
@@ -340,33 +361,36 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
 		newData.add(52);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
 		verify(observer, times(1)).resetting();
 		verify(observer, times(1)).reset();
@@ -377,46 +401,49 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
 		newData.add(52);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
-		assertEquals(ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize(), mol.getSize());
+		assertEquals(source1.getSize() + source2.getSize() + source3.getSize(), mol.getSize());
 		int i = 0;
-		while (i < ol1.list().getSize()) {
+		while (i < source1.getSize()) {
 			assertEquals(11 + i, mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize()) {
-			assertEquals(51 + i - ol1.list().getSize(), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize()) {
+			assertEquals(51 + i - source1.getSize(), mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize()) {
-			assertEquals(31 + i - (ol1.list().getSize() + ol2.list().getSize()), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize() + source3.getSize()) {
+			assertEquals(31 + i - (source1.getSize() + source2.getSize()), mol.getAt(i).intValue());
 			++i;
 		}
 	}
@@ -426,27 +453,30 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
@@ -457,7 +487,7 @@ public class MergingReadOnlyObservableListTests {
 		newData.add(56);
 		newData.add(57);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
 		verify(observer, times(1)).resetting();
 		verify(observer, times(1)).reset();
@@ -468,27 +498,30 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
@@ -499,20 +532,20 @@ public class MergingReadOnlyObservableListTests {
 		newData.add(56);
 		newData.add(57);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
-		assertEquals(ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize(), mol.getSize());
+		assertEquals(source1.getSize() + source2.getSize() + source3.getSize(), mol.getSize());
 		int i = 0;
-		while (i < ol1.list().getSize()) {
+		while (i < source1.getSize()) {
 			assertEquals(11 + i, mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize()) {
-			assertEquals(51 + i - ol1.list().getSize(), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize()) {
+			assertEquals(51 + i - source1.getSize(), mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize()) {
-			assertEquals(31 + i - (ol1.list().getSize() + ol2.list().getSize()), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize() + source3.getSize()) {
+			assertEquals(31 + i - (source1.getSize() + source2.getSize()), mol.getAt(i).intValue());
 			++i;
 		}
 	}
@@ -522,27 +555,30 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
@@ -551,7 +587,7 @@ public class MergingReadOnlyObservableListTests {
 		newData.add(54);
 		newData.add(55);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
 		verify(observer, times(1)).resetting();
 		verify(observer, times(1)).reset();
@@ -562,27 +598,30 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 		List<Integer> newData = new ArrayList<>();
 		newData.add(51);
@@ -591,20 +630,20 @@ public class MergingReadOnlyObservableListTests {
 		newData.add(54);
 		newData.add(55);
 
-		ol2.mutator().reset(newData);
+		mutator2.reset(newData);
 
-		assertEquals(ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize(), mol.getSize());
+		assertEquals(source1.getSize() + source2.getSize() + source3.getSize(), mol.getSize());
 		int i = 0;
-		while (i < ol1.list().getSize()) {
+		while (i < source1.getSize()) {
 			assertEquals(11 + i, mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize()) {
-			assertEquals(51 + i - ol1.list().getSize(), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize()) {
+			assertEquals(51 + i - source1.getSize(), mol.getAt(i).intValue());
 			++i;
 		}
-		while (i < ol1.list().getSize() + ol2.list().getSize() + ol3.list().getSize()) {
-			assertEquals(31 + i - (ol1.list().getSize() + ol2.list().getSize()), mol.getAt(i).intValue());
+		while (i < source1.getSize() + source2.getSize() + source3.getSize()) {
+			assertEquals(31 + i - (source1.getSize() + source2.getSize()), mol.getAt(i).intValue());
 			++i;
 		}
 	}
@@ -630,29 +669,32 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 
-		ol1.mutator().add(16);
+		mutator1.add(16);
 
 		assertEquals(16, mol.getAt(5).intValue());
 		assertEquals(21, mol.getAt(6).intValue());
@@ -664,30 +706,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		ol1.mutator().add(16);
+		mutator1.add(16);
 
 		verify(observer, times(1)).added(5, 1);
 	}
@@ -697,29 +742,32 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 
-		ol2.mutator().add(26);
+		mutator2.add(26);
 
 		assertEquals(26, mol.getAt(10).intValue());
 		assertEquals(31, mol.getAt(11).intValue());
@@ -731,33 +779,36 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		Collection<Integer> newValues = new ArrayList<>();
 		newValues.add(26);
 		newValues.add(27);
 		newValues.add(28);
 
-		ol2.mutator().add(5, newValues);
+		mutator2.add(5, newValues);
 
 		assertEquals(26, mol.getAt(10).intValue());
 		assertEquals(27, mol.getAt(11).intValue());
@@ -771,30 +822,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		ol2.mutator().add(16);
+		mutator2.add(16);
 
 		verify(observer, times(1)).added(10, 1);
 	}
@@ -804,30 +858,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 
-		ol2.mutator().add(26);
-		ol2.mutator().remove(5, 1);
+		mutator2.add(26);
+		mutator2.remove(5, 1);
 
 		assertEquals(25, mol.getAt(9).intValue());
 		assertEquals(31, mol.getAt(10).intValue());
@@ -839,30 +896,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		ol2.mutator().remove(0, 1);
+		mutator2.remove(0, 1);
 
 		assertEquals(22, mol.getAt(5).intValue());
 		assertEquals(31, mol.getAt(9).intValue());
@@ -876,30 +936,33 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		mol.addObserver(observer);
 
-		ol2.mutator().set(0, 51);
+		mutator2.set(0, 51);
 
 		assertEquals(51, mol.getAt(5).intValue());
 		verify(observer, times(1)).changing(5, 1);
@@ -911,34 +974,37 @@ public class MergingReadOnlyObservableListTests {
 		IReadWriteMonitor monitor = new DummyReadWriteMonitor();
 		MutableListSet<Integer> sources = new MutableListSet<Integer>(monitor); 
 		MergingReadOnlyObservableList<Integer> mol = new MergingReadOnlyObservableList<>(sources, monitor);
-		ObservableList<Integer> ol1 = ObservableCollections.createObservableList();
-		ol1.mutator().add(11);
-		ol1.mutator().add(12);
-		ol1.mutator().add(13);
-		ol1.mutator().add(14);
-		ol1.mutator().add(15);
-		ObservableList<Integer> ol2 = ObservableCollections.createObservableList();
-		ol2.mutator().add(21);
-		ol2.mutator().add(22);
-		ol2.mutator().add(23);
-		ol2.mutator().add(24);
-		ol2.mutator().add(25);
-		ObservableList<Integer> ol3 = ObservableCollections.createObservableList();
-		ol3.mutator().add(31);
-		ol3.mutator().add(32);
-		ol3.mutator().add(33);
-		ol3.mutator().add(34);
-		ol3.mutator().add(35);
-		sources.add(ol1.list());
-		sources.add(ol2.list());
-		sources.add(ol3.list());
+		final ListMutator<Integer> mutator1 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source1 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator1).build();
+		mutator1.add(11);
+		mutator1.add(12);
+		mutator1.add(13);
+		mutator1.add(14);
+		mutator1.add(15);
+		final ListMutator<Integer> mutator2 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source2 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator2).build();
+		mutator2.add(21);
+		mutator2.add(22);
+		mutator2.add(23);
+		mutator2.add(24);
+		mutator2.add(25);
+		final ListMutator<Integer> mutator3 = new ListMutator<>(mockMonitor);
+		final IReadOnlyObservableList<Integer> source3 = ListBuilder.<Integer>create(mockMonitor).mutable(mutator3).build();
+		mutator3.add(31);
+		mutator3.add(32);
+		mutator3.add(33);
+		mutator3.add(34);
+		mutator3.add(35);
+		sources.add(source1);
+		sources.add(source2);
+		sources.add(source3);
 		Collection<Integer> newValues = new ArrayList<>();
 		newValues.add(51);
 		newValues.add(52);
 		newValues.add(53);
 		mol.addObserver(observer);
 
-		ol2.mutator().set(0, newValues);
+		mutator2.set(0, newValues);
 
 		assertEquals(51, mol.getAt(5).intValue());
 		assertEquals(52, mol.getAt(6).intValue());

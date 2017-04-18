@@ -70,23 +70,29 @@ public class FilteringReadOnlyObservableListTests {
 	@Mock IItemFilter<Integer> mockFilter2;
 	@Mock IItemFilter<Object> mockObjectFilter;
 	@Mock IListObserver observer;
+	@Mock IReadWriteMonitor mockMonitor;
+	@Mock IResource rLock;
+	@Mock IResource wLock;
 	private IReadWriteMonitor monitor;
 	
 	@Before
 	public void setUp() throws Exception {
 		MockitoAnnotations.initMocks(this);
+		when(mockMonitor.acquireRead()).thenReturn(rLock);
+		when(mockMonitor.acquireWrite()).thenReturn(wLock);
 		monitor = new DummyReadWriteMonitor();
 	}
 
 	@Test
 	public void newListPermitAllAllAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-				ol.list(),
+				source,
 				new ImmutableObservableReference<>(mockFilter1),
 				monitor);
 
@@ -97,12 +103,13 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void newListPermitNoneNoneAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(false);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-				ol.list(),
+				source,
 				new ImmutableObservableReference<>(mockFilter1),
 				monitor);
 
@@ -114,13 +121,14 @@ public class FilteringReadOnlyObservableListTests {
 	public void changeFilterItemsDisappear() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
 		when(mockFilter2.isIn(any(Integer.class))).thenReturn(false);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-				ol.list(),
+				source,
 				filter,
 				monitor);
 
@@ -134,12 +142,13 @@ public class FilteringReadOnlyObservableListTests {
 	public void changeFilterItemsAppear() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(false);
 		when(mockFilter2.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
 		assertEquals(0, fol.getSize());
 		filter.setValue(mockFilter2);
@@ -150,13 +159,14 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void permitAllAddItemsAllAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 
 		verify(mockFilter1, times(3)).isIn(any(Integer.class));
 		assertEquals(3, fol.getSize());
@@ -165,14 +175,15 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void removePermittedRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().remove(2, 1);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.remove(2, 1);
 
 		assertEquals(2, fol.getSize());
 	}
@@ -180,14 +191,15 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void removeDisallowedRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true).thenReturn(false).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().remove(1, 1);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.remove(1, 1);
 
 		assertEquals(2, fol.getSize());
 	}
@@ -195,14 +207,15 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void removeRangeRemoved() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true).thenReturn(false).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().remove(0, 3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.remove(0, 3);
 
 		assertEquals(0, fol.getSize());
 	}
@@ -210,13 +223,14 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void permitNoneAddItemsNoneAdded() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(false);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<Integer>> filter = new MutableObservableReference<>(mockFilter1, monitor);
-		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 
 		verify(mockFilter1, times(3)).isIn(any(Integer.class));
 		assertEquals(0, fol.getSize());
@@ -224,15 +238,16 @@ public class FilteringReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateToAllowedItemAppears() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<TestItem>> filter = new MutableObservableReference<IItemFilter<TestItem>>(new TestFilter(), monitor);
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 		TestItem item;
 		
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(11));
-		ol.mutator().add(new TestItem(12));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(11));
+		mutator.add(new TestItem(12));
 		
 		assertEquals(2, fol.getSize());
 		item.setValue(3);
@@ -241,15 +256,16 @@ public class FilteringReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateToDisallowedItemDisappears() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<TestItem>> filter = new MutableObservableReference<IItemFilter<TestItem>>(new TestFilter(), monitor);
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 		TestItem item;
 		
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(12));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(12));
 		
 		assertEquals(3, fol.getSize());
 		item.setValue(11);
@@ -258,16 +274,17 @@ public class FilteringReadOnlyObservableListTests {
 	
 	@Test
 	public void mutateRemovedMutationIgnored() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
         MutableObservableReference<IItemFilter<TestItem>> filter = new MutableObservableReference<IItemFilter<TestItem>>(new TestFilter(), monitor);
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 		TestItem item;
 		
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
-		ol.mutator().add(item = new TestItem(11));
-		ol.mutator().add(new TestItem(12));
-		ol.mutator().remove(2, 1);
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
+		mutator.add(item = new TestItem(11));
+		mutator.add(new TestItem(12));
+		mutator.remove(2, 1);
 		
 		assertEquals(2, fol.getSize());
 		item.setValue(3);
@@ -276,40 +293,42 @@ public class FilteringReadOnlyObservableListTests {
 	
 	@Test
 	public void unlinkNoMoreUpdates() {
-		ObservableList<TestItem> ol = ObservableCollections.createObservableList();
+		ListMutator<TestItem> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<TestItem> source = ListBuilder.<TestItem>create(mockMonitor).mutable(mutator).build();
         ImmutableObservableReference<IItemFilter<TestItem>> filter = new ImmutableObservableReference<IItemFilter<TestItem>>(new TestFilter());
-		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(ol.list(), filter, monitor);
+		FilteringReadOnlyObservableList<TestItem> fol = new FilteringReadOnlyObservableList<>(source, filter, monitor);
 		TestItem item;
 		
-		ol.mutator().add(new TestItem(1));
-		ol.mutator().add(new TestItem(2));
+		mutator.add(new TestItem(1));
+		mutator.add(new TestItem(2));
 		fol.unlink();
-		ol.mutator().add(item = new TestItem(3));
-		ol.mutator().add(new TestItem(12));
+		mutator.add(item = new TestItem(3));
+		mutator.add(new TestItem(12));
 		
 		assertEquals(2, fol.getSize());
 		item.setValue(11);
 		assertEquals(2, fol.getSize());
 		
 		List<Object> l = new ArrayList<>();
-		l.add(ol.list().getAt(0));
-		l.add(ol.list().getAt(1));
+		l.add(source.getAt(0));
+		l.add(source.getAt(1));
 		assertContainsAllItems(fol, l);
 	}
 
 	@Test
 	public void changeOneVisibleItemToVisibleChangesInPlace() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 
-		ol.mutator().set(1, 5);
+		mutator.set(1, 5);
 		
 		assertEquals(5, fol.getAt(1).intValue());
 	}
@@ -317,17 +336,18 @@ public class FilteringReadOnlyObservableListTests {
 	@Test
 	public void changeOneVisibleItemToVisibleReportsChange() {
 		when(mockFilter1.isIn(any(Integer.class))).thenReturn(true);
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
 
-		ol.mutator().set(1, 5);
+		mutator.set(1, 5);
 		
 		verify(observer, times(1)).changing(eq(1), eq(1));
 		verify(observer, times(1)).changed(eq(1), eq(1));
@@ -341,24 +361,25 @@ public class FilteringReadOnlyObservableListTests {
 				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
 			}
 		});
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(50);
-		ol.mutator().add(51);
-		ol.mutator().add(52);
-		ol.mutator().add(53);
-		ol.mutator().add(54);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(50);
+		mutator.add(51);
+		mutator.add(52);
+		mutator.add(53);
+		mutator.add(54);
 		FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
 
-		ol.mutator().set(1, 100);
+		mutator.set(1, 100);
 		
 		assertEquals(4, fol.getSize());
 		verify(observer, times(1)).removing(eq(1), eq(1));
@@ -373,24 +394,25 @@ public class FilteringReadOnlyObservableListTests {
 				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
 			}
 		});
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(2);
-		ol.mutator().add(3);
-		ol.mutator().add(4);
-		ol.mutator().add(5);
-		ol.mutator().add(50);
-		ol.mutator().add(51);
-		ol.mutator().add(52);
-		ol.mutator().add(53);
-		ol.mutator().add(54);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(2);
+		mutator.add(3);
+		mutator.add(4);
+		mutator.add(5);
+		mutator.add(50);
+		mutator.add(51);
+		mutator.add(52);
+		mutator.add(53);
+		mutator.add(54);
         FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-                ol.list(),
+                source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
 
-		ol.mutator().set(6, 6);
+		mutator.set(6, 6);
 		
 		assertEquals(6, fol.getSize());
 		verify(observer, never()).removing(anyInt(), anyInt());
@@ -406,24 +428,25 @@ public class FilteringReadOnlyObservableListTests {
 				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
 			}
 		});
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(50);
-		ol.mutator().add(2);
-		ol.mutator().add(51);
-		ol.mutator().add(3);
-		ol.mutator().add(52);
-		ol.mutator().add(4);
-		ol.mutator().add(53);
-		ol.mutator().add(5);
-		ol.mutator().add(54);
-		ol.mutator().add(56);
-		ol.mutator().add(57);
-		ol.mutator().add(58);
-		ol.mutator().add(59);
-		ol.mutator().add(60);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(50);
+		mutator.add(2);
+		mutator.add(51);
+		mutator.add(3);
+		mutator.add(52);
+		mutator.add(4);
+		mutator.add(53);
+		mutator.add(5);
+		mutator.add(54);
+		mutator.add(56);
+		mutator.add(57);
+		mutator.add(58);
+		mutator.add(59);
+		mutator.add(60);
         FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-                ol.list(),
+                source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
@@ -440,7 +463,7 @@ public class FilteringReadOnlyObservableListTests {
 		newValues.add(11); // 57
 		newValues.add(12); // 58
 
-		ol.mutator().set(2, newValues);
+		mutator.set(2, newValues);
 		
 		assertEquals(8, fol.getSize());
 		List<Object> values = new ArrayList<>();
@@ -463,24 +486,25 @@ public class FilteringReadOnlyObservableListTests {
 				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
 			}
 		});
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(50);
-		ol.mutator().add(2);
-		ol.mutator().add(51);
-		ol.mutator().add(3);
-		ol.mutator().add(52);
-		ol.mutator().add(4);
-		ol.mutator().add(53);
-		ol.mutator().add(5);
-		ol.mutator().add(54);
-		ol.mutator().add(56);
-		ol.mutator().add(57);
-		ol.mutator().add(58);
-		ol.mutator().add(59);
-		ol.mutator().add(60);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(50);
+		mutator.add(2);
+		mutator.add(51);
+		mutator.add(3);
+		mutator.add(52);
+		mutator.add(4);
+		mutator.add(53);
+		mutator.add(5);
+		mutator.add(54);
+		mutator.add(56);
+		mutator.add(57);
+		mutator.add(58);
+		mutator.add(59);
+		mutator.add(60);
         FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-                ol.list(),
+                source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
@@ -497,7 +521,7 @@ public class FilteringReadOnlyObservableListTests {
 		newValues.add(104); // 57
 		newValues.add(12);  // 58
 
-		ol.mutator().set(2, newValues);
+		mutator.set(2, newValues);
 		
 		assertEquals(3, fol.getSize());
 		List<Object> values = new ArrayList<>();
@@ -515,24 +539,25 @@ public class FilteringReadOnlyObservableListTests {
 				return ((Integer)arg0.getArgument(0)).intValue() < 50 ? Boolean.TRUE : Boolean.FALSE;
 			}
 		});
-		ObservableList<Integer> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(1);
-		ol.mutator().add(50);
-		ol.mutator().add(2);
-		ol.mutator().add(51);
-		ol.mutator().add(3);
-		ol.mutator().add(52);
-		ol.mutator().add(4);
-		ol.mutator().add(53);
-		ol.mutator().add(5);
-		ol.mutator().add(54);
-		ol.mutator().add(56);
-		ol.mutator().add(57);
-		ol.mutator().add(58);
-		ol.mutator().add(59);
-		ol.mutator().add(60);
+		ListMutator<Integer> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Integer> source = ListBuilder.<Integer>create(mockMonitor).mutable(mutator).build();
+		mutator.add(1);
+		mutator.add(50);
+		mutator.add(2);
+		mutator.add(51);
+		mutator.add(3);
+		mutator.add(52);
+		mutator.add(4);
+		mutator.add(53);
+		mutator.add(5);
+		mutator.add(54);
+		mutator.add(56);
+		mutator.add(57);
+		mutator.add(58);
+		mutator.add(59);
+		mutator.add(60);
         FilteringReadOnlyObservableList<Integer> fol = new FilteringReadOnlyObservableList<>(
-                ol.list(),
+                source,
                 new ImmutableObservableReference<>(mockFilter1),
                 monitor);
 		fol.addObserver(observer);
@@ -549,7 +574,7 @@ public class FilteringReadOnlyObservableListTests {
 		testValues.add(32);
 		testValues.add(33);
 
-		ol.mutator().reset(newValues);
+		mutator.reset(newValues);
 		
 		assertEquals(4, fol.getSize());
 		assertContainsAllItems(fol, testValues);
@@ -560,19 +585,20 @@ public class FilteringReadOnlyObservableListTests {
 		when(mockObjectFilter.isIn(any())).thenReturn(true);
 		IMutableObject mutable1 = mock(IMutableObject.class);
 		IMutableObject mutable2 = mock(IMutableObject.class);
-		ObservableList<Object> ol = ObservableCollections.createObservableList();
-		ol.mutator().add(mutable1);
+		ListMutator<Object> mutator = new ListMutator<>(mockMonitor);
+		IReadOnlyObservableList<Object> source = ListBuilder.<Object>create(mockMonitor).mutable(mutator).build();
+		mutator.add(mutable1);
 		FilteringReadOnlyObservableList<Object> fol = new FilteringReadOnlyObservableList<>(
-		        ol.list(),
+		        source,
                 new ImmutableObservableReference<>(mockObjectFilter),
-                monitor);
+                mockMonitor);
 		fol.addObserver(observer);
 		Collection<Object> newValues = new ArrayList<>();
 		newValues.add(mutable2);
 
 		verify(mutable1, times(1)).addObserver(any(IObjectMutationObserver.class));
 		verify(mutable1, never()).removeObserver(any(IObjectMutationObserver.class));
-		ol.mutator().reset(newValues);
+		mutator.reset(newValues);
 		
 		assertEquals(1, fol.getSize());
 		assertSame(mutable2, fol.getAt(0));

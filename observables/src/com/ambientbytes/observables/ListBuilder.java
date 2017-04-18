@@ -33,23 +33,25 @@ package com.ambientbytes.observables;
 
 public final class ListBuilder<T> {
 	
-	private ITrigger unlinker;
+	private final ITrigger unlinker;
+	private final IReadWriteMonitor monitor;
 	
-	private ListBuilder(ITrigger unlinker) {
+	private ListBuilder(ITrigger unlinker, IReadWriteMonitor monitor) {
 		this.unlinker = unlinker;
+		this.monitor = monitor;
 	}
 	
 	//
 	// Unlinker that may be attached to observable lists created by list builder child classes if the caller
 	// of one of the methods of ListBuilder has provided an unlinking trigger.
 	//
-    private static final class Unlinker<T> implements ITriggerListener {
+    private static final class Unlinker implements ITriggerListener {
     	
-    	private final ILinkedReadOnlyObservableList<T> source;
+    	private final ILinked source;
     	private final ITrigger trigger;
 
-    	static <T> IReadOnlyObservableList<T> attachUnlinker(ILinkedReadOnlyObservableList<T> source, ITrigger trigger) {
-    		Unlinker<T> unlinker = new Unlinker<>(source, trigger);
+    	static <T extends ILinked> T attachUnlinker(T source, ITrigger trigger) {
+    		Unlinker unlinker = new Unlinker(source, trigger);
     		//
     		// reguster() retains the unlinker object in the trigger.
     		// All unlinkers will remain retained as long as the trigger is retained by the caller.
@@ -60,7 +62,7 @@ public final class ListBuilder<T> {
     		return source;
     	}
     	
-    	private Unlinker(ILinkedReadOnlyObservableList<T> source, ITrigger trigger) {
+    	private Unlinker(ILinked source, ITrigger trigger) {
     		this.source = source;
     		this.trigger = trigger;
     	}
@@ -160,6 +162,21 @@ public final class ListBuilder<T> {
         }
     }
     
+    private final static class MutableListBuilder<T> extends MonitoredListBuilder<T> {
+    	
+    	private final IListMutatorListener<T> mutator;
+
+        MutableListBuilder(IListMutatorListener<T> mutator, ITrigger unlinker, IReadWriteMonitor monitor) {
+            super(unlinker, monitor);
+            this.mutator = mutator;
+        }
+
+        @Override
+        public IReadOnlyObservableList<T> buildList() {
+            return new MutableObservableList<T>(mutator, monitor());
+        }
+    }
+    
     private final static class MergingListBuilder<T> extends MonitoredListBuilder<T> {
     	private final IListSet<T> listSet;
     	
@@ -242,17 +259,25 @@ public final class ListBuilder<T> {
      * @param monitor read/write monitor propagated to all chained list builders.
      * @return new list builder that returns the specified list.
      */
-    public static <T> IListBuilder<T> forSource(IReadOnlyObservableList<T> source, IReadWriteMonitor monitor) {
+    public static <T> IListBuilder<T> source(IReadOnlyObservableList<T> source, IReadWriteMonitor monitor) {
         return new StraightListBuilder<>(source, null, monitor);
     }
     
+    public static <T> ListBuilder<T> create(IReadWriteMonitor monitor) {
+    	return new ListBuilder<>(null, monitor);
+    }
+    
+    public static <T> ListBuilder<T> create(ITrigger unlinker, IReadWriteMonitor monitor) {
+    	return new ListBuilder<>(unlinker, monitor);
+    }
+
     /**
-     * Factory of ListBuilder objects with an injected unlinker trigger.
-     * @param unlinker unlinker trigger.
-     * @return new instance of ListBuilder that will build chains of observable collections with an atached unlinker trigger.
+     * Create a new list builder that creates a new mutable list for the provided mutator.
+     * @param mutator injectable mutator that will change contents of the list.
+     * @return
      */
-    public static <T> ListBuilder<T> unlinker(ITrigger unlinker) {
-    	return new ListBuilder<>(unlinker);
+    public IListBuilder<T> mutable(IListMutatorListener<T> mutator) {
+    	return new MutableListBuilder<>(mutator, unlinker, monitor);
     }
 
     /**
@@ -261,7 +286,7 @@ public final class ListBuilder<T> {
      * @param monitor read/write monitor that will be passed to all observable lists in the chain.
      * @return new builder that will return the source list.
      */
-    public IListBuilder<T> source(IReadOnlyObservableList<T> source, IReadWriteMonitor monitor) {
+    public IListBuilder<T> source(IReadOnlyObservableList<T> source) {
     	return new StraightListBuilder<>(source, unlinker, monitor);
     }
 
@@ -271,17 +296,7 @@ public final class ListBuilder<T> {
      * @param monitor read/write monitor propagated to all chained list builders.
      * @return new list builder that creates a new merging observable list.
      */
-    public static <T> IListBuilder<T> forMerge(IListSet<T> sources, IReadWriteMonitor monitor) {
-    	return new MergingListBuilder<>(sources, null, monitor);
-    }
-
-    /**
-     * Create a new list builder that creates an observable list that merges contents of lists in the passed list set.
-     * @param sources collection of source observable lists.
-     * @param monitor read/write monitor propagated to all chained list builders.
-     * @return new list builder that creates a new merging observable list.
-     */
-    public IListBuilder<T> merge(IListSet<T> sources, IReadWriteMonitor monitor) {
+    public IListBuilder<T> merge(IListSet<T> sources) {
     	return new MergingListBuilder<>(sources, unlinker, monitor);
     }
 }
